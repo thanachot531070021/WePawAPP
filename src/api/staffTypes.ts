@@ -297,3 +297,33 @@ export interface StaffPetFile {
     case_thread_id: string | null;
   } | null;
 }
+
+/** body ของ /api/mobile/auth/signup/clinic — ตรงกับ SignupPayloadSchema ใน petcare/app/actions/clinic-signup.ts */
+export interface ClinicSignupPayload {
+  account: { email: string; password: string; full_name: string; phone: string };
+  clinic: {
+    name: string;
+    clinic_type: "clinic" | "hospital" | "special";
+    description: string;
+    license_number: string;
+    phone: string | null;
+    email: null;
+    line_id: string | null;
+    website: string | null;
+    facebook_url: null;
+  };
+  address: {
+    address_line: string;
+    sub_district: string | null;
+    district: string;
+    province: string;
+    postal_code: string | null;
+    lat: number;
+    lng: number;
+  };
+  species: { species: string; other?: string }[];
+  hours: { day_of_week: number; is_closed: boolean; open_time: string | null; close_time: string | null }[];
+  services: { service_name: string; description: null; price_min: null; price_max: null; species: [] }[];
+  vets: { full_name: string; license_number: string | null; years_of_experience: number | null; specialties: string[] }[];
+  consent_terms: true;
+}

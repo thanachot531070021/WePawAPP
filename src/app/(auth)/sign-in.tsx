@@ -67,7 +67,7 @@ export default function SignIn() {
       <Button label="เข้าสู่ระบบ" size="lg" full loading={busy} onPress={submit} testID="submit" />
       <View style={{ flexDirection: "row", justifyContent: "center", gap: 4 }}>
         <Txt tone="muted">ยังไม่มีบัญชี?</Txt>
-        <Txt tone="brand" weight="semibold" onPress={() => router.replace("/sign-up")}>
+        <Txt tone="brand" weight="semibold" onPress={() => router.replace("/join")}>
           สมัครสมาชิก
         </Txt>
       </View>

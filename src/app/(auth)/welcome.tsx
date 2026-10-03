@@ -59,8 +59,11 @@ export default function Welcome() {
         </View>
       </View>
       <View style={{ gap: 12 }}>
-        <Button label="สมัครสมาชิก" size="lg" full onPress={() => router.push("/sign-up")} />
+        <Button label="สมัครสมาชิก" size="lg" full onPress={() => router.push("/join")} />
         <Button label="เข้าสู่ระบบ" size="lg" variant="outline" full onPress={() => router.push("/sign-in")} />
+        <Txt size={13} tone="muted" align="center">
+          สำหรับเจ้าของสัตว์เลี้ยง คลินิก และสัตวแพทย์
+        </Txt>
       </View>
     </LinearGradient>
   );

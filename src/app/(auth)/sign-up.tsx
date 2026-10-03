@@ -65,7 +65,7 @@ export default function SignUp() {
         <Txt size={22} weight="bold">
           เริ่มดูแลน้องกับ WePaw
         </Txt>
-        <Txt tone="muted">สมัครครั้งเดียว ใช้ได้ทั้งแอปและเว็บ</Txt>
+        <Txt tone="muted">บัญชีเจ้าของสัตว์เลี้ยง — สมัครครั้งเดียว ใช้ได้ทั้งแอปและเว็บ</Txt>
       </View>
       {error && <Notice tone="danger">{error}</Notice>}
       <Field label="ชื่อ-นามสกุล" required value={form.full_name} onChangeText={set("full_name")} error={errors.full_name} autoComplete="name" />

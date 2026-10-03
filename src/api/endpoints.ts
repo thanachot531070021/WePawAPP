@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { ClinicSignupPayload } from "./staffTypes";
 import type {
   ActionOk,
   AppointmentDetail,
@@ -42,6 +43,9 @@ export const authApi = {
     consent_marketing: boolean;
     consent_data_sharing: boolean;
   }) => api<AuthResult>("/api/mobile/auth/signup", { body, anonymous: true }),
+  /** ลงทะเบียนคลินิก (payload เดียวกับ signUpClinicOwner ของเว็บ) — คลินิกเริ่มเป็น pending รออนุมัติ */
+  signupClinic: (body: ClinicSignupPayload) =>
+    api<AuthResult & { clinic_id: string }>("/api/mobile/auth/signup/clinic", { body, anonymous: true }),
   refresh: () => api<AuthResult>("/api/mobile/auth/refresh", { method: "POST" }),
 };
 
@@ -284,4 +288,13 @@ export const communityApi = {
     api<ActionOk<{ value: number }>>("/api/mobile/community/vote", { body: { targetType, targetId, value } }),
   report: (targetType: "question" | "answer", targetId: string, reason: string) =>
     api<{ ok: true }>("/api/mobile/community/report", { body: { targetType, targetId, reason } }),
+};
+
+/** ที่อยู่จากพิกัด — /api/geo/reverse ของเว็บ (Nominatim + ชื่อจังหวัด/อำเภอจากชุดข้อมูลไทยของเว็บ) */
+export const geoApi = {
+  reverse: (lat: number, lng: number) =>
+    api<{ province: string; district: string; sub_district: string; postal_code: string; address_line: string }>(
+      `/api/geo/reverse?lat=${lat}&lng=${lng}`,
+      { anonymous: true }
+    ),
 };

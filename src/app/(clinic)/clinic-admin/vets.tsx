@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as WebBrowser from "expo-web-browser";
-import { UserPlus, Users } from "lucide-react-native";
+import { router } from "expo-router";
+import { Link2, UserPlus, Users } from "lucide-react-native";
+import { useState } from "react";
 import { View } from "react-native";
-import { WEB_BASE_URL } from "@/api/config";
 import { clinicStaffApi } from "@/api/staffEndpoints";
-import { AppBar, Avatar, Button, Card, confirmAsync, EmptyState, ErrorView, LoadingView, Pill, Screen, toast, Txt } from "@/components/ui";
-import { useClinicVets } from "@/features/staffQueries";
+import { ActivationLinkCard } from "@/components/staff/ActivationLinkCard";
+import { AppBar, Avatar, Button, Card, confirmAsync, EmptyState, ErrorView, LoadingView, Pill, Screen, Sheet, toast, Txt } from "@/components/ui";
+import { useClinicOverview, useClinicVets } from "@/features/staffQueries";
 import { useColors } from "@/theme";
 
 const LINK_LABEL: Record<string, string> = {
@@ -14,11 +15,18 @@ const LINK_LABEL: Record<string, string> = {
   requested: "หมอขอเข้าคลินิก",
 };
 
-/** สัตวแพทย์ของคลินิก — อนุมัติคำขอ / เอาออก (approveClinicRequest, endVetClinicLink ของเว็บ) · เพิ่มหมอใหม่ทำบนเว็บ */
+/** สัตวแพทย์ของคลินิก — เพิ่ม / ส่งลิงก์เปิดใช้งานใหม่ / อนุมัติคำขอ / เอาออก (createVet, regenerateVetActivationToken, approveClinicRequest, endVetClinicLink ของเว็บ) */
 export default function ClinicVets() {
   const c = useColors();
   const qc = useQueryClient();
   const { data, isLoading, error, refetch, isRefetching } = useClinicVets();
+  const { data: overview } = useClinicOverview();
+  const [link, setLink] = useState<{ name: string; path: string } | null>(null);
+  const relink = useMutation({
+    mutationFn: (v: { id: string; name: string }) => clinicStaffApi.vetActivationLink(v.id).then((r) => ({ name: v.name, path: r.data.activationPath })),
+    onSuccess: setLink,
+    onError: (e: Error) => toast.error(e.message),
+  });
   const done = (msg: string) => {
     toast.success(msg);
     void qc.invalidateQueries({ queryKey: ["clinic"] });
@@ -52,12 +60,21 @@ export default function ClinicVets() {
                 </Txt>
               </View>
               <Pill
-                label={LINK_LABEL[v.link_status] ?? v.link_status}
+                label={pendingAccount(v) ? "รอหมอเปิดใช้บัญชี" : (LINK_LABEL[v.link_status] ?? v.link_status)}
                 color={v.link_status === "active" ? c.brandSoftText : c.warnText}
                 bg={v.link_status === "active" ? c.brandSoft : c.warnSoft}
               />
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
+              {pendingAccount(v) && (
+                <Button
+                  label="ส่งลิงก์เปิดใช้งาน"
+                  icon={Link2}
+                  size="sm"
+                  loading={relink.isPending && relink.variables?.id === v.vet_id}
+                  onPress={() => relink.mutate({ id: v.vet_id, name: v.full_name })}
+                />
+              )}
               {v.link_status === "requested" && (
                 <Button label="อนุมัติ" size="sm" loading={approve.isPending} onPress={() => approve.mutate(v.vet_id)} />
               )}
@@ -74,7 +91,16 @@ export default function ClinicVets() {
           </Card>
         ))
       )}
-      <Button label="เพิ่มสัตวแพทย์บนเว็บ" icon={UserPlus} variant="outline" full onPress={() => WebBrowser.openBrowserAsync(`${WEB_BASE_URL}/clinic-admin/vets/new`)} />
+      <Button label="เพิ่มสัตวแพทย์" icon={UserPlus} full onPress={() => router.push("/clinic-admin/add-vet")} testID="open-add-vet" />
+      <Sheet open={!!link} onClose={() => setLink(null)} title="ลิงก์เปิดใช้งานใหม่">
+        <Txt tone="muted">ลิงก์เดิมใช้ไม่ได้แล้ว — ส่งลิงก์นี้ให้หมอแทน</Txt>
+        {link && <ActivationLinkCard vetName={link.name} clinicName={overview?.clinic.name ?? ""} path={link.path} />}
+      </Sheet>
     </Screen>
   );
+}
+
+/** หมอที่คลินิกเพิ่มแต่ยังไม่ได้ตั้งรหัสผ่าน (account pending) — ส่งลิงก์ใหม่ได้ */
+function pendingAccount(v: { link_status: string; account_status: string }) {
+  return v.link_status === "provisional" && v.account_status === "pending";
 }

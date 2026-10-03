@@ -44,6 +44,21 @@ export const clinicStaffApi = {
   deleteService: (id: string) => api<ActionOk<unknown>>(`/api/mobile/clinic/services/${id}`, { method: "DELETE" }),
   vets: () => api<{ items: ClinicVetRow[] }>("/api/mobile/clinic/vets"),
   approveVet: (vetId: string) => api<ActionOk<unknown>>(`/api/mobile/clinic/vets/${vetId}`, { method: "POST" }),
+  /** createVet ของเว็บ — หมอใหม่ได้ activationPath ให้คลินิกส่งต่อ, หมอที่มีบัญชีแล้วได้คำเชิญ */
+  addVet: (body: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+    license_number: string | null;
+    years_of_experience: string | null;
+    role_at_clinic: "full_time" | "part_time" | "freelance";
+  }) =>
+    api<ActionOk<{ vetId: string; outcome: "created_pending" | "linked_existing"; activationPath?: string }>>("/api/mobile/clinic/vets", {
+      body,
+    }),
+  /** ลิงก์เปิดใช้งานใหม่ให้หมอที่ยัง pending (ใบเก่าถูกยกเลิก) */
+  vetActivationLink: (vetId: string) =>
+    api<ActionOk<{ activationPath: string }>>(`/api/mobile/clinic/vets/${vetId}/activation`, { method: "POST" }),
   removeVet: (vetId: string, reason?: string) =>
     api<ActionOk<unknown>>(`/api/mobile/clinic/vets/${vetId}`, { method: "DELETE", body: { reason } }),
   petFile: (petId: string) => api<StaffPetFile>(`/api/mobile/clinic/pets/${petId}`),
