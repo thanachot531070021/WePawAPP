@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import { ImagePlus, Lock, SendHorizontal } from "lucide-react-native";
+import { CircleCheckBig, ImagePlus, Lock, SendHorizontal } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { absoluteUrl } from "@/api/config";
 import { chatApi, uploadApi } from "@/api/endpoints";
+import { caseApi } from "@/api/staffEndpoints";
 import type { ChatMessage } from "@/api/types";
-import { AppBar, ErrorView, LoadingView, toast, Txt } from "@/components/ui";
+import { AppBar, confirmAsync, ErrorView, IconButton, LoadingView, toast, Txt } from "@/components/ui";
 import { formatDateShort, formatTime } from "@/lib/format";
 import { pickImageWithChoice } from "@/lib/images";
 import { qk } from "@/lib/queryClient";
@@ -16,9 +17,9 @@ import { font, radius, useColors } from "@/theme";
 
 type Row = ChatMessage | { divider: string; id: string };
 
-const ROLE_NAME: Record<string, string> = { clinic: "คลินิก", vet: "คุณหมอ" };
+const ROLE_NAME: Record<string, string> = { owner: "เจ้าของสัตว์", clinic: "คลินิก", vet: "คุณหมอ" };
 
-function Bubble({ m }: { m: ChatMessage }) {
+function Bubble({ m, myRole }: { m: ChatMessage; myRole: string }) {
   const c = useColors();
   if (m.sender_role === "system") {
     return (
@@ -29,7 +30,8 @@ function Bubble({ m }: { m: ChatMessage }) {
       </View>
     );
   }
-  const mine = m.sender_role === "owner";
+  // ข้อความของฉัน = ผู้ส่ง role เดียวกับฉันในห้องนี้ (my_role จาก server)
+  const mine = m.sender_role === myRole;
   return (
     <View style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "80%", marginVertical: 3, gap: 2 }}>
       {!mine && (
@@ -103,6 +105,17 @@ export default function ChatThreadScreen() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // หมอปิดห้องแชทเคส (กติกาเดียวกับเว็บ: ปิดแล้วทุกฝั่งส่งไม่ได้)
+  const close = useMutation({
+    mutationFn: () => caseApi.closeThread(id),
+    onSuccess: () => {
+      toast.success("ปิดเคสแล้ว");
+      void qc.invalidateQueries({ queryKey: qk.chatMessages(id) });
+      void qc.invalidateQueries({ queryKey: qk.chatThreads });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   async function attach() {
     const file = await pickImageWithChoice();
     if (!file) return;
@@ -126,8 +139,9 @@ export default function ChatThreadScreen() {
       </View>
     );
 
-  const { messages, thread, can_post } = q.data;
-  const title = thread.subject ?? "แชทกับคลินิก";
+  const { messages, thread, can_post, my_role } = q.data;
+  const title = thread.subject ?? (my_role === "owner" ? "แชทกับคลินิก" : "แชทกับเจ้าของสัตว์");
+  const canClose = my_role === "vet" && thread.kind === "case" && thread.status === "open";
   // แสดงวันที่คั่นเมื่อเปลี่ยนวัน
   const rows: Row[] = [];
   let lastDay = "";
@@ -142,7 +156,23 @@ export default function ChatThreadScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <AppBar title={title} subtitle={thread.kind === "case" ? "แชทเคส · คุณหมอและคลินิกตอบร่วมกัน" : null} back />
+      <AppBar
+        title={title}
+        subtitle={thread.kind === "case" ? "แชทเคส · คุณหมอและคลินิกตอบร่วมกัน" : null}
+        back
+        right={
+          canClose ? (
+            <IconButton
+              icon={CircleCheckBig}
+              label="ปิดเคส"
+              color={c.brand}
+              onPress={async () => {
+                if (await confirmAsync("ปิดห้องแชทเคสนี้?", "ปิดแล้วทุกฝั่งจะส่งข้อความไม่ได้อีก", "ปิดเคส", false)) close.mutate();
+              }}
+            />
+          ) : undefined
+        }
+      />
       <FlatList
         ref={listRef}
         data={rows}
@@ -155,7 +185,7 @@ export default function ChatThreadScreen() {
               {item.divider}
             </Txt>
           ) : (
-            <Bubble m={item} />
+            <Bubble m={item} myRole={my_role} />
           )
         }
       />

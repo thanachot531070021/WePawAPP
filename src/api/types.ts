@@ -317,6 +317,9 @@ export interface ChatThread {
   status: "open" | "closed" | "blocked";
   subject: string | null;
   owner_unread_count: number;
+  clinic_unread_count: number;
+  owner_full_name: string;
+  owner_avatar_url: string | null;
   last_message_at: string | null;
   last_message_preview: string | null;
   last_sender_role: string | null;

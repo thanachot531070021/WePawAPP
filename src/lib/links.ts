@@ -38,5 +38,36 @@ export function webPathToApp(raw: string | null | undefined): Href | null {
     return (q ? `/community/${q}` : "/community") as Href;
   }
   if (path === "/search" || path === "/home" || path === "/") return "/" as Href;
+  return clinicPathToApp(path) ?? vetPathToApp(path);
+}
+
+/** แจ้งเตือนของบัญชีคลินิก — หน้าที่แอปไม่มี (POS, คลังยา ฯลฯ) คืน null */
+function clinicPathToApp(path: string): Href | null {
+  let m: RegExpMatchArray | null;
+  if ((m = path.match(/^\/clinic-admin\/messages\/([^/]+)$/))) return `/chat/${m[1]}` as Href;
+  if (path === "/clinic-admin/messages") return "/clinic-admin/messages" as Href;
+  if ((m = path.match(/^\/clinic-admin\/patients\/([^/]+)(\/visit)?$/))) return `/clinic-admin/patients/${m[1]}` as Href;
+  if (path === "/clinic-admin/appointments/requests") return "/clinic-admin/requests" as Href;
+  if (path === "/clinic-admin/appointments" || path === "/clinic-admin/queue") return "/clinic-admin/appointments" as Href;
+  if (path.startsWith("/clinic-admin/reviews")) return "/clinic-admin/reviews" as Href;
+  if (path === "/clinic-admin/vets") return "/clinic-admin/vets" as Href;
+  if (path === "/clinic-admin/services") return "/clinic-admin/services" as Href;
+  if (path === "/clinic-admin/profile") return "/clinic-admin/profile" as Href;
+  if (path === "/clinic-admin/notifications") return "/notifications" as Href;
+  if (path === "/clinic-admin" || path === "/clinic-admin/pending") return "/clinic-admin" as Href;
+  return null;
+}
+
+/** แจ้งเตือนของบัญชีหมอ */
+function vetPathToApp(path: string): Href | null {
+  let m: RegExpMatchArray | null;
+  if ((m = path.match(/^\/vet\/messages\/([^/]+)$/))) return `/chat/${m[1]}` as Href;
+  if (path === "/vet/messages") return "/vet/messages" as Href;
+  if ((m = path.match(/^\/vet\/pets\/([^/]+)$/))) return `/vet/pets/${m[1]}` as Href;
+  if (path === "/vet/schedule") return "/vet/week" as Href;
+  if (path === "/vet/availability") return "/vet/availability" as Href;
+  if (path === "/vet/profile") return "/vet/profile" as Href;
+  if (path === "/vet/notifications") return "/notifications" as Href;
+  if (path === "/vet" || path === "/vet/dashboard") return "/vet" as Href;
   return null;
 }

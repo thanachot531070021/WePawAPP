@@ -245,7 +245,7 @@ export const notificationApi = {
 
 // ── chat ──
 export const chatApi = {
-  threads: () => api<{ items: ChatThread[]; role: string }>("/api/mobile/chat/threads"),
+  threads: () => api<{ items: ChatThread[]; role: "owner" | "clinic" | "vet" }>("/api/mobile/chat/threads"),
   start: (clinicId: string, opts: { petId?: string | null; subject?: string | null } = {}) =>
     api<{ thread: { id: string } }>("/api/chat/threads", {
       body: { clinicId, kind: "clinic", petId: opts.petId ?? null, subject: opts.subject ?? null },

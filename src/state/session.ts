@@ -8,6 +8,18 @@ import { queryClient } from "@/lib/queryClient";
 
 const TOKEN_KEY = "wepaw.token";
 const USER_KEY = "wepaw.user";
+const VET_CLINIC_KEY = "wepaw.vetClinic";
+
+/** role ที่แอปรองรับ — super_admin ใช้เว็บอย่างเดียว (server ปฏิเสธที่ login อยู่แล้ว) */
+export type AppRole = "pet_owner" | "clinic_admin" | "vet";
+export const APP_ROLES: AppRole[] = ["pet_owner", "clinic_admin", "vet"];
+
+/** หน้าแรกของแต่ละ role — เส้นทางเดียวกับเว็บ (/clinic-admin, /vet) */
+export function homeFor(role: string | undefined): "/" | "/clinic-admin" | "/vet" {
+  if (role === "clinic_admin") return "/clinic-admin";
+  if (role === "vet") return "/vet";
+  return "/";
+}
 
 type Status = "loading" | "signedOut" | "signedIn";
 
@@ -20,20 +32,23 @@ interface SessionState {
   signIn: (result: AuthResult) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User) => void;
+  /** คลินิกที่หมอเลือก (หมอสังกัดหลายคลินิก) — ส่งเป็น header x-vet-clinic แทน cookie ของเว็บ */
+  vetClinicId: string | null;
+  setVetClinic: (clinicId: string | null) => void;
 }
 
-/** แอปนี้สำหรับเจ้าของสัตว์เท่านั้น — role อื่นใช้เว็บ */
-export const OWNER_ONLY_MESSAGE =
-  "แอป WePaw สำหรับเจ้าของสัตว์เลี้ยง — บัญชีคลินิกและสัตวแพทย์ใช้งานผ่านเว็บ";
+export const UNSUPPORTED_ROLE_MESSAGE = "บัญชีผู้ดูแลระบบใช้งานผ่านเว็บเท่านั้น";
 
 export const useSession = create<SessionState>((set, get) => ({
   status: "loading",
   token: null,
   user: null,
+  vetClinicId: null,
 
   bootstrap: async () => {
     const token = await storage.get(TOKEN_KEY);
     const cachedUser = await storage.get(USER_KEY);
+    set({ vetClinicId: await storage.get(VET_CLINIC_KEY) });
     if (!token) {
       set({ status: "signedOut" });
       return;
@@ -61,8 +76,17 @@ export const useSession = create<SessionState>((set, get) => ({
   signOut: async () => {
     await storage.remove(TOKEN_KEY);
     await storage.remove(USER_KEY);
+    await storage.remove(VET_CLINIC_KEY);
     queryClient.clear();
-    set({ token: null, user: null, status: "signedOut" });
+    set({ token: null, user: null, status: "signedOut", vetClinicId: null });
+  },
+
+  setVetClinic: (clinicId) => {
+    if (clinicId) void storage.set(VET_CLINIC_KEY, clinicId);
+    else void storage.remove(VET_CLINIC_KEY);
+    set({ vetClinicId: clinicId });
+    // ข้อมูลของหมอผูกกับคลินิกที่เลือก — โหลดใหม่ทั้งชุด
+    void queryClient.invalidateQueries({ queryKey: ["vet"] });
   },
 
   setUser: (user) => {
@@ -93,4 +117,8 @@ async function verifyThenSignOut() {
 configureApi({
   getToken: () => useSession.getState().token,
   onUnauthorized: () => void verifyThenSignOut(),
+  getExtraHeaders: (): Record<string, string> => {
+    const { user, vetClinicId } = useSession.getState();
+    return user?.role === "vet" && vetClinicId ? { "x-vet-clinic": vetClinicId } : {};
+  },
 });

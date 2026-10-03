@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
@@ -10,7 +10,7 @@ import { ToastHost } from "@/components/ui";
 import { listenNotificationTaps, registerPush } from "@/lib/push";
 import { queryClient } from "@/lib/queryClient";
 import { usePrefs } from "@/state/prefs";
-import { useSession } from "@/state/session";
+import { homeFor, useSession } from "@/state/session";
 import { brand, useColors } from "@/theme";
 import { fontAssets } from "@/theme/fonts";
 
@@ -19,6 +19,8 @@ SplashScreen.preventAutoHideAsync().catch(() => null);
 export default function RootLayout() {
   const [fontsLoaded] = useFonts(fontAssets);
   const status = useSession((s) => s.status);
+  const role = useSession((s) => s.user?.role);
+  const segments = useSegments();
   const c = useColors();
 
   useEffect(() => {
@@ -37,6 +39,15 @@ export default function RootLayout() {
     void registerPush(false);
     return listenNotificationTaps();
   }, [status]);
+
+  // แต่ละ role มีกลุ่มหน้าของตัวเอง (เจ้าของ "/", คลินิก "/clinic-admin", หมอ "/vet") — ถ้าเปิดแอปแล้ว
+  // อยู่ผิดกลุ่ม (เช่น เปลี่ยนบัญชี / ลิงก์ของ role อื่น) พาไปหน้าแรกของ role ตัวเอง
+  useEffect(() => {
+    if (status !== "signedIn" || !role) return;
+    const group = segments[0];
+    const expected = role === "clinic_admin" ? "(clinic)" : role === "vet" ? "(vet)" : "(app)";
+    if (group !== expected && group !== "(shared)") router.replace(homeFor(role));
+  }, [status, role, segments]);
 
   const navTheme = useMemo(() => {
     const base = c.isDark ? DarkTheme : DefaultTheme;
@@ -59,8 +70,17 @@ export default function RootLayout() {
               <Stack.Protected guard={!signedIn}>
                 <Stack.Screen name="(auth)" />
               </Stack.Protected>
-              <Stack.Protected guard={signedIn}>
+              <Stack.Protected guard={signedIn && role === "clinic_admin"}>
+                <Stack.Screen name="(clinic)" />
+              </Stack.Protected>
+              <Stack.Protected guard={signedIn && role === "vet"}>
+                <Stack.Screen name="(vet)" />
+              </Stack.Protected>
+              <Stack.Protected guard={signedIn && role !== "clinic_admin" && role !== "vet"}>
                 <Stack.Screen name="(app)" />
+              </Stack.Protected>
+              <Stack.Protected guard={signedIn}>
+                <Stack.Screen name="(shared)" />
               </Stack.Protected>
             </Stack>
             <ToastHost />

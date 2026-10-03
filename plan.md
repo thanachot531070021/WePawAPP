@@ -1,12 +1,36 @@
-# WePawAPP — แอปมือถือสำหรับเจ้าของสัตว์เลี้ยง (Android + iOS)
+# WePawAPP — แอปมือถือ PetCare: เจ้าของสัตว์ · สัตวแพทย์ · คลินิก (Android + iOS)
 
 > สถานะ: **ทำ Phase 0–3 + ส่วนใหญ่ของ Phase 4 แล้ว ทดสอบผ่าน — เหลือ social login และงานที่ต้องมีบัญชี/คีย์ของ store** · อัปเดต 2 ต.ค. 2026 · ดูข้อ S
 > ระบบแม่: `C:\web_source\petcare` (Next.js 16 + Supabase Postgres + JWT) — WePawAPP เป็น **หน้าบ้านอีกช่องทางหนึ่ง** ของระบบนั้น ไม่มี DB ของตัวเอง
-> ขอบเขต: **เฉพาะ role `pet_owner`** — ไม่รวมคลินิก / หมอ / POS / super_admin (ใช้เว็บต่อไป)
+> ขอบเขต: role `pet_owner` (ครบ) + `vet` และ `clinic_admin` (งานประจำวัน — ดูข้อ S.R, เพิ่ม 3 ต.ค. 2026) · POS / สต็อก / สมาชิก / รายงาน / super_admin ยังใช้เว็บ
 
 ---
 
-## S. สถานะล่าสุด (2 ต.ค. 2026)
+## S.R Role หมอ + คลินิก (3 ต.ค. 2026)
+
+กติกาสิทธิ์ทั้งหมดตามเว็บ — route ฝั่ง petcare เรียก server action / helper ตัวเดิม (`requireClinicAdmin`, `requireVet`, `lib/clinic/visibility.ts`)
+
+| | หมอ (`vet`) | คลินิก (`clinic_admin`) |
+|---|---|---|
+| กลุ่มหน้า | `src/app/(vet)/vet/*` แท็บ วันนี้ · ตาราง · แชท · ฉัน | `src/app/(clinic)/clinic-admin/*` แท็บ หน้าหลัก · นัด · แชท · จัดการ |
+| เข้าได้เมื่อ | เปลี่ยนรหัสชั่วคราวแล้ว (`must_change_password` → บังคับตั้งใหม่ในแอป) + `vets.account_status = active` | มีคลินิก (ล่าสุดตาม `created_at`) และอนุมัติแล้ว — pending แสดงหน้ารอ, ไม่มีคลินิกพาไปสมัครบนเว็บ |
+| ทำอะไรได้ | งานวันนี้ (เริ่มตรวจ / จบเคส + เวชระเบียน / ปิดเคสค้าง), ตารางสัปดาห์, แฟ้มน้องที่มีนัดในคลินิกที่สังกัด, แชทเคส (เปิด/ปิด), ตอบรับ/ปฏิเสธคำเชิญคลินิก, สลับคลินิก (header `x-vet-clinic`), เวลาทำงาน + วันลา, แก้โปรไฟล์/รูป | ภาพรวม + สถิติ, เคสวันนี้ (น้องมาถึง / ไม่มาตามนัด), คำขอจอง (รับ / ปฏิเสธ / ยกเลิก / ยืนยันหมอเยี่ยมบ้าน / ลงเวลาตอนน้องมาถึง), แฟ้มน้อง (กรองตามกติกา visibility), รีวิว + ตอบ, บริการ + ราคา, ข้อมูลคลินิก, อนุมัติ/ถอดหมอ, แชท |
+| ไม่ทำในแอป | — | POS, สต็อก, สมาชิก, รายงาน, เพิ่มหมอใหม่ (มีลิงก์ไปเว็บ) |
+
+- **เมนูหมอมีแค่ของหมอ** — บัญชีหมอไม่เห็นเมนูจัดการคลินิก
+- **คลินิกที่มีหมอคนเดียว** (`vet_clinics.link_status = 'active'` และ `vets.is_active` เหลือ 1 คน — `loadSoloVet()` ใน `petcare/lib/mobile/staff.ts`) → บัญชีคลินิกได้ปุ่ม **เริ่มตรวจ / จบเคส** ที่แท็บนัดด้วย (หมอใช้ไอดีร้านร่วม) · ถ้ามีหมอ ≥ 2 คน ปุ่มนี้หายไป
+- เวชระเบียนที่บัญชีคลินิกบันทึก **ไม่ขึ้น "บันทึกโดยคุณหมอ"** (`is_verified = false`) ตามกติกาเว็บ — ของบัญชีหมอขึ้น
+- หน้าที่ใช้ร่วมกันทุก role อยู่ `src/app/(shared)/` (แชท, แจ้งเตือน, ตั้งค่าแจ้งเตือน, เปลี่ยนรหัส) · `src/app/_layout.tsx` ใช้ `Stack.Protected` แยกกลุ่มตาม role และพากลับหน้าแรกของ role ถ้าเข้าผิดกลุ่ม
+- ลิงก์แจ้งเตือนของเว็บ (`/clinic-admin/...`, `/vet/...`) แปลงเป็นหน้าในแอปที่ `src/lib/links.ts`
+- ลบบัญชีในแอปมีเฉพาะเจ้าของสัตว์ (บัญชีหมอ/คลินิกจัดการบนเว็บ)
+
+**Endpoint ใหม่ใน petcare** (`app/api/mobile/`): `clinic/overview`, `clinic/requests`(+`[id]`), `clinic/appointments/[id]/arrived`, `clinic/appointments/[id]/schedule`, `clinic/reviews/[id]/reply`, `clinic/profile`, `clinic/services`(+`[id]`), `clinic/vets`(+`[id]`), `clinic/pets/[id]`, `appointments/[id]/status`, `appointments/[id]/complete`, `vet/home`, `vet/week`, `vet/invites/[clinicId]`, `vet/availability`, `vet/time-off`(+`[id]`), `vet/profile`, `vet/pets/[id]`, `chat/threads/[id]/close`, `chat/appointments/[id]` · helper `lib/mobile/staff.ts`
+
+**แก้ใน petcare ระหว่างทำ**: `clinic/reviews` เดิมดึงรีวิวของทุกคลินิกที่บัญชีเป็นเจ้าของ (ตอบรีวิวไม่ได้ — "ไม่พบรีวิวนี้") → จำกัดที่คลินิกล่าสุดแบบ `requireClinicAdmin` · `pets/[id]` ฝั่งคลินิกเดิมไม่กรองด้วยกติกา visibility → ใช้ `measurementVisibleSql` / `vaccinationVisibleSql` / `medicalRecordVisibleSql` แล้ว · `me` คืน `must_change_password`, `solo_vet`, `vet.account_status`
+
+**ทดสอบ**: API E2E ฝั่ง staff 45 ข้อ + ฝั่งเจ้าของ 67 ข้อ ผ่านทั้งหมด (DB ทดสอบในเครื่อง) · unit test 50 ข้อ · `tsc` / `expo lint` ผ่าน · Playwright เดินจริงบนเวอร์ชันเว็บ: คลินิก (หน้าหลัก → เคสวันนี้ → น้องมาถึง → รับคำขอจอง → แฟ้มน้อง → จัดการทุกหน้า), โหมดหมอคนเดียว (ปิดบัญชีหมอคนที่สอง → ปุ่มเริ่มตรวจ/จบเคสโผล่), หมอ (จบเคส + เวชระเบียน → แฟ้มน้องเห็นทันที, วันลา, โปรไฟล์, ตอบรับคำเชิญ), หมอที่ต้องเปลี่ยนรหัสผ่านก่อนใช้ · role ผิดกลุ่มถูกพากลับหน้าของตัวเอง
+
+## S. สถานะล่าสุดฝั่งเจ้าของสัตว์ (2 ต.ค. 2026)
 
 ### ทำแล้ว
 

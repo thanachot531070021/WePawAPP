@@ -22,15 +22,26 @@ type UnauthorizedHandler = () => void;
 
 let getToken: TokenGetter = () => null;
 let onUnauthorized: UnauthorizedHandler = () => {};
+let getExtraHeaders: () => Record<string, string> = () => ({});
 
-export function configureApi(opts: { getToken: TokenGetter; onUnauthorized: UnauthorizedHandler }) {
+export function configureApi(opts: {
+  getToken: TokenGetter;
+  onUnauthorized: UnauthorizedHandler;
+  /** header เพิ่มทุก request — เช่น x-vet-clinic (คลินิกที่หมอเลือก แทน cookie vet_clinic ของเว็บ) */
+  getExtraHeaders?: () => Record<string, string>;
+}) {
   getToken = opts.getToken;
   onUnauthorized = opts.onUnauthorized;
+  if (opts.getExtraHeaders) getExtraHeaders = opts.getExtraHeaders;
 }
 
 /** ข้อความ error จาก server เป็นรหัส (เช่น "forbidden") → แปลงเป็นภาษาไทยที่ผู้ใช้อ่านเข้าใจ */
 const ERROR_TEXT: Record<string, string> = {
   unauthorized: "กรุณาเข้าสู่ระบบอีกครั้ง",
+  must_change_password: "กรุณาเปลี่ยนรหัสผ่านก่อนเริ่มใช้งาน",
+  vet_inactive: "บัญชีสัตวแพทย์ยังไม่ได้เปิดใช้งาน",
+  no_clinic: "บัญชีนี้ยังไม่มีคลินิก — สมัครคลินิกบนเว็บ PetCare ก่อน",
+  clinic_pending: "คลินิกกำลังรอการอนุมัติจากทีมงาน",
   unauthenticated: "กรุณาเข้าสู่ระบบอีกครั้ง",
   forbidden: "คุณไม่มีสิทธิ์ทำรายการนี้",
   not_found: "ไม่พบข้อมูล",
@@ -72,7 +83,7 @@ function buildUrl(path: string, query?: RequestOptions["query"]) {
 }
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...getExtraHeaders() };
   const token = opts.anonymous ? null : getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 

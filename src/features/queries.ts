@@ -42,7 +42,7 @@ export const useNotifications = () =>
   useQuery({ queryKey: qk.notifications, queryFn: notificationApi.list, refetchInterval: 60_000 });
 
 export const useChatThreads = () =>
-  useQuery({ queryKey: qk.chatThreads, queryFn: async () => (await chatApi.threads()).items, refetchInterval: 30_000 });
+  useQuery({ queryKey: qk.chatThreads, queryFn: chatApi.threads, refetchInterval: 30_000 });
 export const useChatUnread = () =>
   useQuery({ queryKey: qk.chatUnread, queryFn: async () => (await chatApi.unread()).count, refetchInterval: 30_000 });
 

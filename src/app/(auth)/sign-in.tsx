@@ -4,7 +4,7 @@ import { View } from "react-native";
 import { ApiError } from "@/api/client";
 import { authApi } from "@/api/endpoints";
 import { AppBar, Button, Field, Notice, Screen, Txt } from "@/components/ui";
-import { OWNER_ONLY_MESSAGE, useSession } from "@/state/session";
+import { APP_ROLES, UNSUPPORTED_ROLE_MESSAGE, useSession, type AppRole } from "@/state/session";
 
 export default function SignIn() {
   const signIn = useSession((s) => s.signIn);
@@ -22,8 +22,8 @@ export default function SignIn() {
     setError(null);
     try {
       const res = await authApi.login(email.trim().toLowerCase(), password);
-      if (res.user.role !== "pet_owner") {
-        setError(OWNER_ONLY_MESSAGE);
+      if (!APP_ROLES.includes(res.user.role as AppRole)) {
+        setError(UNSUPPORTED_ROLE_MESSAGE);
         return;
       }
       await signIn(res);
@@ -40,7 +40,7 @@ export default function SignIn() {
         <Txt size={22} weight="bold">
           ยินดีต้อนรับกลับมา
         </Txt>
-        <Txt tone="muted">ใช้อีเมลเดียวกับที่สมัครบนเว็บ PetCare ได้เลย</Txt>
+        <Txt tone="muted">ใช้บัญชีเดียวกับเว็บ PetCare — เจ้าของสัตว์เลี้ยง คลินิก และสัตวแพทย์</Txt>
       </View>
       {error && <Notice tone="danger">{error}</Notice>}
       <Field
