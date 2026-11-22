@@ -332,7 +332,14 @@ WePawAPP/
 - `GET /api/mobile/pets/[id]` คืน `public_tag` ({ url, token, is_enabled, show_owner_name, show_phone, contact_note, is_lost, lost_at, lost_message, scan_count, last_scanned_at }) + `found_reports` (เจ้าของ) · null = บัญชีคลินิก/หมอ → QR รุ่นเก่า `petcare:pet:<id>`
 - `PUT /api/mobile/pets/[id]/public-tag` (ตั้งค่า, เจ้าของเท่านั้น · `fieldErrors.show_phone` ถ้าบัญชีไม่มีเบอร์) · `POST` `{ action: "regenerate" }` = QR ใหม่
 - หน้า `(app)/pets/[id]/public-tag.tsx`: QR ใหญ่ + แชร์ลิงก์ + ดูหน้าสาธารณะ + โหมดน้องหาย (บันทึกทันที) + toggle ข้อมูลที่แสดง + ข้อความจากผู้พบ (โทรกลับ) · Sheet QR บนหน้าน้องใช้ `public_tag.url` + แบนเนอร์ "น้องหาย"
-- ยังไม่มีในแอป: สแกน QR น้องฝั่งคลินิก (ใช้เว็บ `/clinic-admin/patients`)
+- หน้าเพิ่มน้อง (`pets/new`) แนบอัลบั้มได้แล้ว (`photos: []` → ส่ง `photo_urls`)
+
+### S.S คลินิกสแกน QR น้อง + เจ้าของอนุญาต (22 พ.ย. 2026 — petcare lib/clinic/petAccess.ts)
+
+- **ต้องใช้ build ใหม่** — เพิ่ม native module `expo-camera` (+ plugin ใน app.config.ts) อัปเดต OTA ไม่พอ
+- คลินิก: เมนู "จัดการ → สแกน QR น้อง" = `(clinic)/clinic-admin/scan-pet.tsx` (กล้อง `CameraView` QR + วางลิงก์) → `POST /api/mobile/clinic/pet-scan`
+  - `access`: `linked` เปิดแฟ้ม · `related` (เคยมีนัด/บิล) เพิ่มเข้าคลินิก (`action: "link"`) · `needs_consent` เห็นแค่ชื่อต้น + เบอร์ 4 ตัวท้าย → `action: "request"` แล้วตรวจซ้ำทุก 5 วิ
+- เจ้าของ: แจ้งเตือน action_url `/pet-access/<token>` → `(app)/pet-access/[token].tsx` (`GET/POST /api/mobile/pet-access/[token]`) · map ใน `src/lib/links.ts`
 
 ## 5. สิ่งที่ต้องแก้ใน repo `petcare`
 

@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type { ClinicSignupPayload } from "./staffTypes";
 import type {
+  PetAccessView,
   PetPublicTag,
   PetPublicTagSettings,
   CustomerReceipt,
@@ -102,6 +103,13 @@ export interface ClinicSearch {
   sort?: "rating" | "reviews" | "newest";
   open_now?: boolean;
 }
+
+/** คลินิกขอเปิดแฟ้มน้อง (แจ้งเตือน → /pet-access/<token>) — เจ้าของกดอนุญาต */
+export const petAccessApi = {
+  get: (token: string) => api<{ data: PetAccessView }>(`/api/mobile/pet-access/${encodeURIComponent(token)}`),
+  approve: (token: string) =>
+    api<ActionOk<{ petId: string }>>(`/api/mobile/pet-access/${encodeURIComponent(token)}`, { method: "POST" }),
+};
 
 export const clinicApi = {
   search: (s: ClinicSearch) =>

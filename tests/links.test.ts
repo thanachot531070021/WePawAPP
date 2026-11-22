@@ -15,6 +15,7 @@ describe("webPathToApp", () => {
     ["/clinic/rak-nong-ma/review", "/clinic/rak-nong-ma/review"],
     ["/pets/share/TOKEN123", "/share/TOKEN123"],
     ["/claim/CLM", "/claim/CLM"],
+    ["/pet-access/eyJ.a.b", "/pet-access/eyJ.a.b"],
     ["/community?q=q1", "/community/q1"],
     ["/community", "/community"],
     ["/search", "/"],

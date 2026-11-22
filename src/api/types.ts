@@ -501,3 +501,13 @@ export interface ActionOk<T> {
   ok: true;
   data: T;
 }
+
+/** คำขอเปิดแฟ้มน้องจากคลินิก — petcare GET /api/mobile/pet-access/<token> */
+export type PetAccessView =
+  | { status: "invalid" }
+  | {
+      status: "pending" | "linked" | "not_owner";
+      expiresAt: string;
+      pet: { id: string; name: string; species: string; avatar_url: string | null };
+      clinic: { id: string; name: string; logo_url: string | null; area: string | null; slug: string | null };
+    };

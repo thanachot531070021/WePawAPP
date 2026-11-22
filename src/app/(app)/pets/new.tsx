@@ -9,7 +9,9 @@ import { qk } from "@/lib/queryClient";
 
 export default function NewPetScreen() {
   const qc = useQueryClient();
-  const [value, setValue] = useState<PetFormValue>(EMPTY_PET);
+  const [value, setValue] = useState<PetFormValue>({ ...EMPTY_PET, photos: [] });
+  // อัลบั้มรูปน้อง (petcare 047) — เพิ่มได้ตั้งแต่ตอนสร้าง · กำลังอัปโหลดอยู่ห้ามบันทึก
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const m = useMutation({
     mutationFn: () => petApi.create(toPetInput(value)),
@@ -29,10 +31,11 @@ export default function NewPetScreen() {
       header={<AppBar title="เพิ่มสัตว์เลี้ยง" back />}
       footer={
         <Button
-          label="บันทึก"
+          label={uploading ? "กำลังอัปโหลดรูป…" : "บันทึก"}
           size="lg"
           full
           loading={m.isPending}
+          disabled={uploading}
           onPress={() => {
             if (!value.name.trim()) {
               setErrors({ name: "กรุณากรอกชื่อสัตว์เลี้ยง" });
@@ -45,7 +48,7 @@ export default function NewPetScreen() {
         />
       }
     >
-      <PetForm value={value} onChange={setValue} errors={errors} />
+      <PetForm value={value} onChange={setValue} errors={errors} onUploadingChange={setUploading} />
     </Screen>
   );
 }

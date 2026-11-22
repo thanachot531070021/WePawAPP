@@ -327,3 +327,21 @@ export interface ClinicSignupPayload {
   vets: { full_name: string; license_number: string | null; years_of_experience: number | null; specialties: string[] }[];
   consent_terms: true;
 }
+
+/** ผลสแกน QR ของน้องฝั่งคลินิก — petcare lib/clinic/petAccess.ts (ClinicPetScanPreview) */
+export interface ClinicPetScan {
+  pet_id: string;
+  pet_name: string;
+  species: string | null;
+  breed: string | null;
+  avatar_url: string | null;
+  /** needs_consent = ชื่อต้นเท่านั้น */
+  owner_name: string | null;
+  /** needs_consent = ซ่อนเหลือ 4 ตัวท้าย (xxx-xxx-1231) */
+  owner_phone: string | null;
+  owner_email: string | null;
+  /** linked = เปิดแฟ้มได้เลย · related = เคยมีนัด/บิล กดเพิ่มเข้าคลินิกได้ · needs_consent = ต้องให้เจ้าของอนุญาต */
+  access: "linked" | "related" | "needs_consent";
+  already_linked: boolean;
+  member_code: string | null;
+}

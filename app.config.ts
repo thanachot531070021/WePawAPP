@@ -90,6 +90,13 @@ const config: ExpoConfig = {
       },
     ],
     ["expo-notifications", { color: BRAND, defaultChannel: "default" }],
+    [
+      "expo-camera",
+      {
+        cameraPermission: "ใช้กล้องสแกน QR ประจำตัวน้องเพื่อเปิดแฟ้มที่คลินิก",
+        recordAudioAndroid: false,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

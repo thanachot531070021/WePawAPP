@@ -2,6 +2,7 @@ import { api } from "./client";
 import type { ActionOk } from "./types";
 import type {
   BookingRequest,
+  ClinicPetScan,
   ClinicOverview,
   ClinicProfile,
   ClinicReview,
@@ -62,6 +63,14 @@ export const clinicStaffApi = {
   removeVet: (vetId: string, reason?: string) =>
     api<ActionOk<unknown>>(`/api/mobile/clinic/vets/${vetId}`, { method: "DELETE", body: { reason } }),
   petFile: (petId: string) => api<StaffPetFile>(`/api/mobile/clinic/pets/${petId}`),
+  /** สแกน QR ของน้อง (ลิงก์ /t/<token> หรือ petcare:pet:<id>) */
+  petScan: (code: string) => api<ActionOk<ClinicPetScan>>("/api/mobile/clinic/pet-scan", { body: { code } }),
+  /** เพิ่มเข้าคลินิก — ได้เฉพาะ access = related */
+  petScanLink: (pet_id: string) =>
+    api<ActionOk<{ petId: string }>>("/api/mobile/clinic/pet-scan", { body: { action: "link", pet_id } }),
+  /** ส่งคำขอถึงเจ้าของ (แจ้งเตือน + push) — sent=false = เพิ่งส่งไป/เปิดแฟ้มได้แล้ว */
+  petScanRequest: (pet_id: string) =>
+    api<ActionOk<{ sent: boolean }>>("/api/mobile/clinic/pet-scan", { body: { action: "request", pet_id } }),
 };
 
 /** endpoint ฝั่งหมอ — petcare app/api/mobile/vet/** (คลินิกที่เลือกส่งทาง header x-vet-clinic) */

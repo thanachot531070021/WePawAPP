@@ -33,6 +33,7 @@ export function webPathToApp(raw: string | null | undefined): Href | null {
   if ((m = path.match(/^\/clinic\/([^/]+)$/))) return `/clinic/${m[1]}` as Href;
   if ((m = path.match(/^\/pets\/share\/([^/]+)$/))) return `/share/${m[1]}` as Href;
   if ((m = path.match(/^\/claim\/([^/]+)$/))) return `/claim/${m[1]}` as Href;
+  if ((m = path.match(/^\/pet-access\/([^/]+)$/))) return `/pet-access/${m[1]}` as Href;
   if (path === "/community") {
     const q = params.get("q");
     return (q ? `/community/${q}` : "/community") as Href;

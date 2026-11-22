@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { ExternalLink, Inbox, ListChecks, MessageSquareReply, Store, Users } from "lucide-react-native";
+import { ExternalLink, Inbox, ListChecks, MessageSquareReply, ScanLine, Store, Users } from "lucide-react-native";
 import { WEB_BASE_URL } from "@/api/config";
 import { TopActions } from "@/components/TopActions";
 import { StaffSettings } from "@/components/staff/StaffSettings";
@@ -15,6 +15,7 @@ export default function ClinicManage() {
     <Screen inTabs header={<AppBar title="จัดการ" subtitle={data?.clinic.name} right={<TopActions />} />}>
       <SectionTitle>คลินิก</SectionTitle>
       <Card padded={false}>
+        <ListRow icon={ScanLine} label="สแกน QR น้อง" value="เปิดแฟ้ม" onPress={() => router.push("/clinic-admin/scan-pet")} />
         <ListRow icon={Inbox} label="คำขอจองคิว" value={s?.pending_requests ? `${s.pending_requests} รอรับ` : null} onPress={() => router.push("/clinic-admin/requests")} />
         <ListRow icon={MessageSquareReply} label="รีวิว" value={s?.pending_reply ? `${s.pending_reply} รอตอบ` : null} onPress={() => router.push("/clinic-admin/reviews")} />
         <ListRow icon={ListChecks} label="บริการและราคา" onPress={() => router.push("/clinic-admin/services")} />
