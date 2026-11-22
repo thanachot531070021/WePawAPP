@@ -15,6 +15,11 @@ const POLL_MS = 5000;
 const POLL_MAX = 60;
 const POLL_FAST = 12;
 
+/** "QR ให้คลินิก" / รหัส 6 หลัก = เจ้าของยินยอม → server เพิ่มเจ้าของเป็นลูกค้า + เปิดแฟ้มน้องให้แล้ว (ตรงกับ parsePetCode ของเว็บ) */
+function pulledByOwnerCode(code: string) {
+  return code.startsWith("petcare:handoff:") || /^\d{3}[\s-]?\d{3}$/.test(code);
+}
+
 /**
  * สแกน QR ประจำตัวน้อง (ป้ายห้อยคอ/ในแอปเจ้าของ) — กติกาเดียวกับหน้า "ข้อมูลสัตว์เลี้ยง" ของเว็บ
  * เปิดแฟ้มแล้ว → เปิดเลย · เคยมีนัด/บิล → เพิ่มเข้าคลินิก · ยังไม่เคยมา → ขออนุญาตจากเจ้าของ
@@ -26,13 +31,16 @@ export default function ScanPetScreen() {
   const [manual, setManual] = useState("");
   const [scan, setScan] = useState<ClinicPetScan | null>(null);
   const [requested, setRequested] = useState(false);
+  /** ได้จาก QR ให้คลินิก / รหัส 6 หลัก (เจ้าของยินยอม) */
+  const [pulled, setPulled] = useState(false);
   const codeRef = useRef("");
   const busyRef = useRef(false);
 
   const preview = useMutation({
     mutationFn: (code: string) => clinicStaffApi.petScan(code),
-    onSuccess: (r) => {
+    onSuccess: (r, code) => {
       setScan(r.data);
+      setPulled(pulledByOwnerCode(code));
       setRequested(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -171,7 +179,14 @@ export default function ScanPetScreen() {
           </View>
 
           {scan.access === "linked" ? (
-            <Button label="เปิดแฟ้ม" icon={FolderOpen} full onPress={() => router.replace(`/clinic-admin/patients/${scan.pet_id}`)} />
+            <>
+              <Notice tone="brand" icon={Check}>
+                {pulled
+                  ? "ดึงข้อมูลเจ้าของและน้องเข้าคลินิกแล้ว — เปิดแฟ้มได้เลย"
+                  : "น้องอยู่ในแฟ้มคลินิกแล้ว เปิดแฟ้มได้เลย"}
+              </Notice>
+              <Button label="เปิดแฟ้ม" icon={FolderOpen} full onPress={() => router.replace(`/clinic-admin/patients/${scan.pet_id}`)} />
+            </>
           ) : scan.access === "related" ? (
             <>
               <Txt size={13} tone="muted">
