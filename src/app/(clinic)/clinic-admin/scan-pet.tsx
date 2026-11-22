@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
 import { Camera, Check, Clock, FolderOpen, Lock, ScanLine, Search, Send } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { AppState, View } from "react-native";
 import { clinicStaffApi } from "@/api/staffEndpoints";
 import type { ClinicPetScan } from "@/api/staffTypes";
 import { AppBar, Button, Card, Field, Notice, PetAvatar, Screen, toast, Txt } from "@/components/ui";
@@ -13,6 +13,7 @@ import { radius, useColors } from "@/theme";
 /** หลังส่งคำขอ ตรวจซ้ำทุก 5 วิ นานสุด 5 นาที (เจ้าของมักยืนอยู่หน้าเคาน์เตอร์) */
 const POLL_MS = 5000;
 const POLL_MAX = 60;
+const POLL_FAST = 12;
 
 /**
  * สแกน QR ประจำตัวน้อง (ป้ายห้อยคอ/ในแอปเจ้าของ) — กติกาเดียวกับหน้า "ข้อมูลสัตว์เลี้ยง" ของเว็บ
@@ -60,6 +61,8 @@ export default function ScanPetScreen() {
     const t = setInterval(async () => {
       n += 1;
       if (n > POLL_MAX) return clearInterval(t);
+      // ประหยัด: นาทีแรกถามทุก 5 วิ หลังจากนั้นทุก 15 วิ · แอปอยู่เบื้องหลังไม่ถาม
+      if ((n > POLL_FAST && n % 3 !== 0) || AppState.currentState !== "active") return;
       const r = await clinicStaffApi.petScan(codeRef.current).catch(() => null);
       if (r?.data && r.data.access !== "needs_consent") {
         clearInterval(t);
@@ -97,7 +100,7 @@ export default function ScanPetScreen() {
   const species = scan?.species ? (SPECIES_LABEL[scan.species as PetSpecies] ?? scan.species) : null;
 
   return (
-    <Screen header={<AppBar title="สแกน QR น้อง" subtitle="เปิดแฟ้มน้องจาก QR ประจำตัว" back />}>
+    <Screen header={<AppBar title="สแกน QR น้อง" subtitle="QR ให้คลินิก · รหัส 6 หลัก · QR ประจำตัว" back />}>
       {camera ? (
         <View style={{ borderRadius: radius.lg, overflow: "hidden", aspectRatio: 1, backgroundColor: "#000" }}>
           <CameraView
@@ -127,10 +130,10 @@ export default function ScanPetScreen() {
 
       <Card style={{ gap: 10 }}>
         <Field
-          label="หรือวางลิงก์ QR ของน้อง"
+          label="หรือพิมพ์รหัส 6 หลัก / วางลิงก์ QR"
           value={manual}
           onChangeText={setManual}
-          placeholder="https://…/t/…"
+          placeholder="เช่น 482 913"
           autoCapitalize="none"
           autoCorrect={false}
         />

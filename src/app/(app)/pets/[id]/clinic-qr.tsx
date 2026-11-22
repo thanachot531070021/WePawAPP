@@ -42,7 +42,7 @@ export default function ClinicQrScreen() {
       </Screen>
     );
 
-  const { value, expiresAt } = code.data.data;
+  const { value, expiresAt, ref } = code.data.data;
   const left = Math.max(0, Math.floor((new Date(expiresAt).getTime() - now) / 1000));
   const expired = left === 0;
 
@@ -50,7 +50,7 @@ export default function ClinicQrScreen() {
     <Screen header={header}>
       <Card style={{ alignItems: "center", gap: 14, paddingVertical: 24 }}>
         <Txt size={14} tone="muted" align="center">
-          ยื่นให้พนักงานสแกนที่เคาน์เตอร์
+          ยื่นให้พนักงานสแกน หรือบอกรหัสใต้ QR
         </Txt>
         <View
           style={{
@@ -64,6 +64,21 @@ export default function ClinicQrScreen() {
         >
           <QRCode value={value} size={230} ecl="M" />
         </View>
+        {!!ref && !expired && (
+          <View style={{ alignItems: "center", gap: 2 }}>
+            <Txt size={12.5} tone="muted">
+              ร้านไม่มีเครื่องสแกน? บอกรหัสนี้กับพนักงาน
+            </Txt>
+            <Txt
+              size={30}
+              weight="bold"
+              style={{ letterSpacing: 5, fontVariant: ["tabular-nums"] }}
+              accessibilityLabel={`รหัส ${ref.split("").join(" ")}`}
+            >
+              {`${ref.slice(0, 3)} ${ref.slice(3)}`}
+            </Txt>
+          </View>
+        )}
         {expired ? (
           <Button label="สร้าง QR ใหม่" icon={RefreshCw} onPress={() => code.refetch()} loading={code.isFetching} />
         ) : (

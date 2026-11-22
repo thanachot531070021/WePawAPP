@@ -77,8 +77,10 @@ function PublicTagForm({ id, data, tag: initial }: { id: string; data: PetDetail
       void qc.invalidateQueries({ queryKey: qk.pets });
       toast.success("บันทึกแล้ว");
     },
-    onError: (e) => {
+    onError: (e, body) => {
       if (e instanceof ApiError && e.fieldErrors) setErrors(e.fieldErrors);
+      // สวิตช์ย้อนกลับเป็นค่าที่บันทึกอยู่จริง (ข้อความที่พิมพ์ค้างไว้ยังอยู่)
+      setForm({ ...body, is_enabled: tag.is_enabled, show_owner_name: tag.show_owner_name, show_phone: tag.show_phone, is_lost: tag.is_lost });
       toast.error(e.message);
     },
   });
@@ -101,6 +103,12 @@ function PublicTagForm({ id, data, tag: initial }: { id: string; data: PetDetail
   }
 
   const set = <K extends keyof PetPublicTagSettings>(k: K, v: PetPublicTagSettings[K]) => setForm((f) => ({ ...f, [k]: v }));
+  /** สวิตช์บันทึกทันที — เดิมต้องกดบันทึกอีกที ปิดเบอร์แล้วลืมกด หน้าสาธารณะยังโชว์เบอร์ */
+  const toggle = (k: "is_enabled" | "show_owner_name" | "show_phone", v: boolean) => {
+    const next = { ...form, [k]: v };
+    setForm(next);
+    save.mutate(next);
+  };
 
   return (
     <Screen
@@ -192,16 +200,16 @@ function PublicTagForm({ id, data, tag: initial }: { id: string; data: PetDetail
               title="แสดงข้อมูลน้อง"
               desc="รูป ชื่อ ชนิด พันธุ์ สี จุดสังเกต — ไม่แสดงประวัติการรักษา"
               value={form.is_enabled}
-              disabled={form.is_lost}
-              onChange={(v) => set("is_enabled", v)}
+              disabled={form.is_lost || save.isPending}
+              onChange={(v) => toggle("is_enabled", v)}
             />
-            <Row title="แสดงชื่อเจ้าของ (ชื่อต้นเท่านั้น)" value={form.show_owner_name} disabled={!form.is_enabled} onChange={(v) => set("show_owner_name", v)} />
+            <Row title="แสดงชื่อเจ้าของ (ชื่อต้นเท่านั้น)" value={form.show_owner_name} disabled={!form.is_enabled} onChange={(v) => toggle("show_owner_name", v)} />
             <Row
               title="แสดงเบอร์โทรของฉัน"
               desc="ปิดไว้ คนที่เจอยังส่งข้อความถึงคุณได้ โดยไม่เห็นเบอร์"
               value={form.show_phone}
               disabled={!form.is_enabled}
-              onChange={(v) => set("show_phone", v)}
+              onChange={(v) => toggle("show_phone", v)}
               error={errors.show_phone}
             />
             <Field

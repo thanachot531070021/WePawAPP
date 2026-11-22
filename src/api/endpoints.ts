@@ -162,7 +162,7 @@ export const petApi = {
     api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { method: "PUT", body }),
   /** QR ให้คลินิก (เจ้าของเท่านั้น) — คลินิก/POS สแกน = ยินยอมเปิดแฟ้ม · อายุ 10 นาที */
   handoff: (id: string) =>
-    api<ActionOk<{ value: string; expiresAt: string }>>(`/api/mobile/pets/${id}/handoff`, { method: "POST" }),
+    api<ActionOk<{ value: string; expiresAt: string; ref?: string | null }>>(`/api/mobile/pets/${id}/handoff`, { method: "POST" }),
   /** สร้าง QR ใหม่ — QR เดิมใช้ไม่ได้ทันที */
   regeneratePublicTag: (id: string) =>
     api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { body: { action: "regenerate" } }),
