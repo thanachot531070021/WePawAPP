@@ -10,7 +10,7 @@ import { usePet } from "@/features/queries";
 import type { PetDetail } from "@/api/types";
 import { qk } from "@/lib/queryClient";
 
-function fromPet(p: PetDetail["pet"]): PetFormValue {
+function fromPet(p: PetDetail["pet"], photos: PetDetail["photos"]): PetFormValue {
   return {
     name: p.name,
     species: p.species,
@@ -25,6 +25,7 @@ function fromPet(p: PetDetail["pet"]): PetFormValue {
     microchip_id: p.microchip_id ?? "",
     allergies: p.allergies ?? "",
     avatar_url: p.avatar_url || null,
+    photos: photos ?? null,
   };
 }
 
@@ -39,7 +40,8 @@ export default function EditPetScreen() {
 /** ฟอร์มเริ่มจากข้อมูลล่าสุดตอนเปิดหน้า (ไม่ sync ทับระหว่างผู้ใช้กำลังแก้) */
 function EditPetForm({ id, data }: { id: string; data: PetDetail }) {
   const qc = useQueryClient();
-  const [value, setValue] = useState<PetFormValue>(() => fromPet(data.pet));
+  const [value, setValue] = useState<PetFormValue>(() => fromPet(data.pet, data.access_role === "owner" ? data.photos : null));
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const save = useMutation({
@@ -70,9 +72,18 @@ function EditPetForm({ id, data }: { id: string; data: PetDetail }) {
   return (
     <Screen
       header={<AppBar title={`แก้ไขข้อมูล${data.pet.name}`} back />}
-      footer={<Button label="บันทึก" size="lg" full loading={save.isPending} onPress={() => save.mutate()} />}
+      footer={
+        <Button
+          label={uploading ? "กำลังอัปโหลดรูป…" : "บันทึก"}
+          size="lg"
+          full
+          loading={save.isPending}
+          disabled={uploading}
+          onPress={() => save.mutate()}
+        />
+      }
     >
-      <PetForm value={value} onChange={setValue} errors={errors} petId={id} />
+      <PetForm value={value} onChange={setValue} errors={errors} petId={id} onUploadingChange={setUploading} />
       {isOwner && (
         <Button
           label="ลบสัตว์เลี้ยง"

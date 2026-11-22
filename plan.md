@@ -320,6 +320,20 @@ WePawAPP/
 - แอปรุ่นเก่า: เห็นข้อความ "ใบเสร็จ … · ยอด …" + ไฟล์แนบ 📎 (ลิงก์เว็บ) — ใช้งานได้ ไม่พัง
 - ยังไม่มีในแอป: หน้านับสต๊อกของคลินิก (ใช้เว็บบนมือถือ `/clinic-admin/stock-count`), ปุ่มส่งใบเสร็จฝั่งคลินิก
 
+### S.P อัลบั้มรูปน้อง (22 พ.ย. 2026 — petcare migration 047)
+
+- `GET /api/mobile/pets/[id]` คืน `photos` (อัลบั้ม ไม่รวม `pet.avatar_url` · null = เซิร์ฟเวอร์ยังไม่รัน 047)
+- `PATCH` ส่ง `photo_urls: string[]` = อัลบั้มทั้งชุดตามลำดับ · ไม่ส่ง = ไม่แตะอัลบั้ม (แอปรุ่นเก่าปลอดภัย)
+- `src/components/PetPhotoAlbum.tsx`: `PetPhotoAlbumInput` (ในฟอร์มแก้ไขน้อง เมื่อเจ้าของ + photos ไม่ใช่ null · เลือกหลายรูปด้วย `pickImages` · กากบาทมุมรูป · ดาว = ตั้งเป็นรูปหลัก) และ `PetPhotoGallery` (หน้าน้อง แสดงเมื่อ > 1 รูป + ดูเต็มจอปัดได้)
+- สูงสุด 12 รูปรวมรูปหลัก (`MAX_PET_PHOTOS` ต้องตรงกับ petcare `lib/pets/photos.ts`) · หน้าเพิ่มน้องยังแนบรูปหลักรูปเดียว
+
+### S.Q QR ประจำตัวน้องแบบสาธารณะ (22 พ.ย. 2026 — petcare migration 048)
+
+- `GET /api/mobile/pets/[id]` คืน `public_tag` ({ url, token, is_enabled, show_owner_name, show_phone, contact_note, is_lost, lost_at, lost_message, scan_count, last_scanned_at }) + `found_reports` (เจ้าของ) · null = บัญชีคลินิก/หมอ → QR รุ่นเก่า `petcare:pet:<id>`
+- `PUT /api/mobile/pets/[id]/public-tag` (ตั้งค่า, เจ้าของเท่านั้น · `fieldErrors.show_phone` ถ้าบัญชีไม่มีเบอร์) · `POST` `{ action: "regenerate" }` = QR ใหม่
+- หน้า `(app)/pets/[id]/public-tag.tsx`: QR ใหญ่ + แชร์ลิงก์ + ดูหน้าสาธารณะ + โหมดน้องหาย (บันทึกทันที) + toggle ข้อมูลที่แสดง + ข้อความจากผู้พบ (โทรกลับ) · Sheet QR บนหน้าน้องใช้ `public_tag.url` + แบนเนอร์ "น้องหาย"
+- ยังไม่มีในแอป: สแกน QR น้องฝั่งคลินิก (ใช้เว็บ `/clinic-admin/patients`)
+
 ## 5. สิ่งที่ต้องแก้ใน repo `petcare`
 
 1. **`lib/auth/session.ts` — `getSession()` อ่าน `Authorization: Bearer` ก่อน cookie** (ผ่าน `headers()`)

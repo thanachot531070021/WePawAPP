@@ -1,6 +1,8 @@
 import { api } from "./client";
 import type { ClinicSignupPayload } from "./staffTypes";
 import type {
+  PetPublicTag,
+  PetPublicTagSettings,
   CustomerReceipt,
   ActionOk,
   AppointmentDetail,
@@ -130,6 +132,8 @@ export interface PetInput {
   microchip_id?: string | null;
   allergies?: string | null;
   avatar_url?: string | null;
+  /** อัลบั้มทั้งชุดตามลำดับ (ไม่รวมรูปหลัก) · ไม่ส่ง = ไม่แตะอัลบั้มเดิม */
+  photo_urls?: string[];
 }
 
 export const petApi = {
@@ -144,6 +148,12 @@ export const petApi = {
   /** บันทึก "ข้อมูลเพิ่มเติม" ทั้งชุดตามลำดับ — แถวที่ไม่ส่ง = ลบ · error รายแถว fieldErrors label_<i>/value_<i> */
   saveCustomFields: (id: string, fields: { id: string | null; label: string; value: string }[]) =>
     api<ActionOk<{ fields: PetCustomField[] }>>(`/api/mobile/pets/${id}/custom-fields`, { method: "PUT", body: { fields } }),
+  /** ตั้งค่า QR ประจำตัวน้อง (เฉพาะเจ้าของ) · show_phone ต้องมีเบอร์ในบัญชีก่อน (fieldErrors.show_phone) */
+  updatePublicTag: (id: string, body: PetPublicTagSettings) =>
+    api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { method: "PUT", body }),
+  /** สร้าง QR ใหม่ — QR เดิมใช้ไม่ได้ทันที */
+  regeneratePublicTag: (id: string) =>
+    api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { body: { action: "regenerate" } }),
   removeMeasurement: (mid: string) => api<ActionOk<unknown>>(`/api/mobile/measurements/${mid}`, { method: "DELETE" }),
   addVaccination: (id: string, body: Record<string, string | null | undefined>) =>
     api<ActionOk<{ vaccinationId: string }>>(`/api/mobile/pets/${id}/vaccinations`, { body }),

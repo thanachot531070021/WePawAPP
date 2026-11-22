@@ -19,6 +19,7 @@ import QRCode from "react-native-qrcode-svg";
 import { petApi } from "@/api/endpoints";
 import type { PetDetail } from "@/api/types";
 import { PetCustomFieldsCard } from "@/components/PetCustomFields";
+import { PetPhotoGallery } from "@/components/PetPhotoAlbum";
 import { WeightChart } from "@/components/WeightChart";
 import {
   AppBar,
@@ -165,6 +166,13 @@ export default function PetProfileScreen() {
         {pet.microchip_id && <Fact label="ไมโครชิป" value={pet.microchip_id} />}
       </Card>
 
+      {data.public_tag?.is_lost && (
+        <Notice tone="danger" icon={AlertTriangle}>
+          <Txt size={13.5} weight="semibold" tone="danger" onPress={() => router.push(`/pets/${pet.id}/public-tag`)}>
+            แจ้งว่า{pet.name}หายอยู่ — คนที่สแกน QR จะเห็นป้ายน้องหาย · แตะเพื่อตั้งค่า
+          </Txt>
+        </Notice>
+      )}
       {status.kind !== "none" && <StatusBar status={status} />}
       {pet.allergies && (
         <Notice tone="danger" icon={AlertTriangle}>
@@ -176,6 +184,12 @@ export default function PetProfileScreen() {
           </Txt>
         </Notice>
       )}
+
+      <PetPhotoGallery
+        photos={[pet.avatar_url, ...(data.photos ?? [])].filter((u, i, a): u is string => !!u && a.indexOf(u) === i)}
+        petName={pet.name}
+        onEdit={data.access_role === "owner" ? () => router.push(`/pets/${pet.id}/edit`) : undefined}
+      />
 
       {data.custom_fields && (
         <PetCustomFieldsCard petId={pet.id} petName={pet.name} fields={data.custom_fields} canEdit={canEdit} />
@@ -256,11 +270,25 @@ export default function PetProfileScreen() {
       <Sheet open={qrOpen} onClose={() => setQrOpen(false)} title="QR ประจำตัวน้อง">
         <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
           <View style={{ padding: 16, backgroundColor: "#fff", borderRadius: radius.lg }}>
-            <QRCode value={`petcare:pet:${pet.id}`} size={200} />
+            <QRCode value={data.public_tag?.url ?? `petcare:pet:${pet.id}`} size={200} />
           </View>
           <Txt tone="muted" align="center">
-            ให้คลินิกสแกน QR นี้เพื่อเปิดแฟ้มของ{pet.name} — คลินิกจะเห็นเฉพาะน้องตัวนี้
+            {data.public_tag
+              ? `คนทั่วไปสแกนด้วยกล้องมือถือ → เห็นหน้า${pet.name}และติดต่อเจ้าของ · คลินิก/POS สแกน → เปิดแฟ้ม${pet.name}`
+              : `ให้คลินิกสแกน QR นี้เพื่อเปิดแฟ้มของ${pet.name} — คลินิกจะเห็นเฉพาะน้องตัวนี้`}
           </Txt>
+          {data.public_tag && (
+            <Button
+              label={isOwner ? "ตั้งค่า QR / แจ้งน้องหาย" : "ดูรายละเอียด QR"}
+              icon={QrCode}
+              variant="outline"
+              full
+              onPress={() => {
+                setQrOpen(false);
+                router.push(`/pets/${pet.id}/public-tag`);
+              }}
+            />
+          )}
         </View>
       </Sheet>
     </Screen>

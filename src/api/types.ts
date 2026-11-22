@@ -216,6 +216,38 @@ export interface PetDetail {
   }[];
   /** ข้อมูลเพิ่มเติมที่เจ้าของจดเอง · null/ไม่มี = ไม่แสดงส่วนนี้ (บัญชีคลินิก/หมอ) */
   custom_fields?: PetCustomField[] | null;
+  /** อัลบั้มรูป (ไม่รวมรูปหลัก pet.avatar_url) · null/ไม่มี = เซิร์ฟเวอร์ยังไม่รองรับ (แนบได้รูปเดียว) */
+  photos?: string[] | null;
+  /** QR ประจำตัวน้อง (petcare migration 048) · null/ไม่มี = ใช้ QR รุ่นเก่า petcare:pet:<id> */
+  public_tag?: PetPublicTag | null;
+  /** ข้อความจากคนที่สแกน QR (เฉพาะเจ้าของ) */
+  found_reports?: PetFoundReport[];
+}
+
+/** หน้าสาธารณะ /t/<token> — คนทั่วไปสแกนเห็นข้อมูลพื้นฐาน · คลินิก/POS สแกนเปิดแฟ้มน้อง */
+export interface PetPublicTagSettings {
+  is_enabled: boolean;
+  show_owner_name: boolean;
+  show_phone: boolean;
+  contact_note: string | null;
+  is_lost: boolean;
+  lost_message: string | null;
+}
+
+export interface PetPublicTag extends PetPublicTagSettings {
+  url: string;
+  token: string;
+  lost_at: string | null;
+  scan_count: number;
+  last_scanned_at: string | null;
+}
+
+export interface PetFoundReport {
+  id: string;
+  message: string;
+  finder_name: string | null;
+  finder_phone: string | null;
+  created_at: string;
 }
 
 /** หัวข้อ + ข้อมูลที่เจ้าของตั้งเอง (petcare/lib/pets/customFields.ts) */

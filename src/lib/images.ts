@@ -56,3 +56,57 @@ export async function pickImageWithChoice(square = false): Promise<UploadFile | 
   if (!choice) return null;
   return pickImage({ camera: choice === "camera", square });
 }
+
+/**
+ * เลือกหลายรูปจากคลัง (สูงสุด limit รูป) หรือถ่ายรูปเดียว — ย่อ + แปลง JPEG ทุกรูปเหมือน pickImage
+ * ใช้กับอัลบั้มรูปน้อง (petcare migration 047)
+ */
+export async function pickImages(limit: number): Promise<UploadFile[]> {
+  if (limit <= 0) return [];
+  let camera = false;
+  if (Platform.OS !== "web") {
+    const choice = await new Promise<"camera" | "library" | null>((resolve) =>
+      Alert.alert("เพิ่มรูป", undefined, [
+        { text: "ถ่ายรูป", onPress: () => resolve("camera") },
+        { text: `เลือกจากคลังรูปภาพ (ได้ ${limit} รูป)`, onPress: () => resolve("library") },
+        { text: "ยกเลิก", style: "cancel", onPress: () => resolve(null) },
+      ])
+    );
+    if (!choice) return [];
+    camera = choice === "camera";
+  }
+  if (camera) {
+    const one = await pickImage({ camera: true });
+    return one ? [one] : [];
+  }
+  try {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      toast.error("ต้องอนุญาตคลังรูปภาพก่อน");
+      return [];
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: limit,
+      orderedSelection: true,
+      quality: 1,
+    });
+    if (res.canceled) return [];
+    const out: UploadFile[] = [];
+    for (const [i, asset] of res.assets.slice(0, limit).entries()) {
+      const ctx = ImageManipulator.manipulate(asset.uri);
+      if ((asset.width ?? 0) > MAX_EDGE || (asset.height ?? 0) > MAX_EDGE) {
+        ctx.resize(asset.width >= asset.height ? { width: MAX_EDGE } : { height: MAX_EDGE });
+      }
+      const rendered = await ctx.renderAsync();
+      const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+      out.push({ uri: saved.uri, name: `photo-${Date.now()}-${i}.jpg`, type: "image/jpeg" });
+    }
+    return out;
+  } catch (err) {
+    console.warn("[pickImages]", err);
+    toast.error("เปิดรูปไม่สำเร็จ");
+    return [];
+  }
+}

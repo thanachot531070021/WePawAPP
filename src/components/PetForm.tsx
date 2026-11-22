@@ -8,6 +8,7 @@ import { pickImageWithChoice } from "@/lib/images";
 import { ALL_SPECIES, SPECIES_LABEL } from "@/shared/species";
 import { breedHint, metricLevel, speciesProfile } from "@/shared/speciesProfile";
 import { WeightField } from "./WeightField";
+import { PetPhotoAlbumInput } from "./PetPhotoAlbum";
 import { radius, useColors } from "@/theme";
 
 export interface PetFormValue {
@@ -26,6 +27,8 @@ export interface PetFormValue {
   microchip_id: string;
   allergies: string;
   avatar_url: string | null;
+  /** อัลบั้ม (ไม่รวมรูปหลัก) · null = ไม่แสดงอัลบั้ม (ตอนเพิ่มน้อง / เซิร์ฟเวอร์ยังไม่รองรับ) */
+  photos: string[] | null;
 }
 
 export const EMPTY_PET: PetFormValue = {
@@ -42,6 +45,7 @@ export const EMPTY_PET: PetFormValue = {
   microchip_id: "",
   allergies: "",
   avatar_url: null,
+  photos: null,
 };
 
 /** แปลงเป็น body ของ API — ส่งครบทุกฟิลด์เสมอ (updatePet ของเว็บแทนที่ทั้งแถว) */
@@ -61,6 +65,7 @@ export function toPetInput(v: PetFormValue): PetInput {
     microchip_id: s(v.microchip_id),
     allergies: s(v.allergies),
     avatar_url: v.avatar_url ?? "",
+    ...(v.photos ? { photo_urls: v.photos } : {}),
   };
 }
 
@@ -70,11 +75,13 @@ export function PetForm({
   onChange,
   errors,
   petId,
+  onUploadingChange,
 }: {
   value: PetFormValue;
   onChange: (v: PetFormValue) => void;
   errors: Record<string, string>;
   petId?: string;
+  onUploadingChange?: (busy: boolean) => void;
 }) {
   const c = useColors();
   const [uploading, setUploading] = useState(false);
@@ -126,6 +133,15 @@ export function PetForm({
           {uploading ? "กำลังอัปโหลดรูป…" : "แตะเพื่อเปลี่ยนรูป"}
         </Txt>
       </View>
+
+      {value.photos && (
+        <PetPhotoAlbumInput
+          main={value.avatar_url}
+          extras={value.photos}
+          onChange={(m, x) => onChange({ ...value, avatar_url: m, photos: x })}
+          onUploadingChange={onUploadingChange}
+        />
+      )}
 
       <Field label="ชื่อน้อง" required value={value.name} onChangeText={(t) => set("name", t)} error={errors.name} maxLength={50} />
 
