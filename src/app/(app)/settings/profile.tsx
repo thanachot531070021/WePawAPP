@@ -6,7 +6,7 @@ import { Pressable, View } from "react-native";
 import { ApiError } from "@/api/client";
 import { meApi, uploadApi } from "@/api/endpoints";
 import type { Profile, User } from "@/api/types";
-import { AppBar, Avatar, Button, Field, LoadingView, Screen, toast, Txt } from "@/components/ui";
+import { AppBar, Avatar, Button, Card, Field, LoadingView, Screen, SectionTitle, toast, Toggle, Txt } from "@/components/ui";
 import { useMe } from "@/features/queries";
 import { pickImageWithChoice } from "@/lib/images";
 import { qk } from "@/lib/queryClient";
@@ -118,6 +118,82 @@ function ProfileForm({ me }: { me: { user: User; profile: Profile | null } }) {
       />
       <Field label="จังหวัด" value={form.province} onChangeText={(v) => setForm((f) => ({ ...f, province: v }))} maxLength={50} />
       <Field label="เขต / อำเภอ" value={form.district} onChangeText={(v) => setForm((f) => ({ ...f, district: v }))} maxLength={50} />
+      <ConsentCard profile={me.profile} />
     </Screen>
+  );
+}
+
+const CONSENT_ROWS = [
+  {
+    key: "consent_marketing",
+    title: "รับข่าวสารและโปรโมชัน",
+    desc: "ข่าวสาร โปรโมชัน และคำแนะนำการดูแลสัตว์เลี้ยง",
+  },
+  {
+    key: "consent_data_sharing",
+    title: "แบ่งปันข้อมูลทั่วไปกับพาร์ทเนอร์",
+    desc: "สถิติที่ไม่ระบุตัวตน ไม่รวมชื่อ เบอร์โทร หรือประวัติสุขภาพรายตัว — ตอนนี้ยังไม่มีพาร์ทเนอร์",
+  },
+] as const;
+
+/** ความยินยอม PDPA — เปิด/ปิดได้ทุกเมื่อ บันทึกทันที (ConsentSettings ของเว็บ → PATCH /api/mobile/me) */
+function ConsentCard({ profile }: { profile: Profile | null }) {
+  const c = useColors();
+  const qc = useQueryClient();
+  const [value, setValue] = useState({
+    consent_marketing: !!profile?.consent_marketing,
+    consent_data_sharing: !!profile?.consent_data_sharing,
+  });
+  const m = useMutation({
+    mutationFn: (patch: Partial<typeof value>) => meApi.setConsents(patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.me });
+      toast.success("บันทึกความยินยอมแล้ว");
+    },
+    onError: (e: Error, patch) => {
+      // ย้อนค่าที่กดไปกลับ
+      setValue((v) => ({ ...v, ...Object.fromEntries(Object.entries(patch).map(([k, x]) => [k, !x])) }));
+      toast.error(e.message);
+    },
+  });
+  return (
+    <>
+      <SectionTitle>ความยินยอม (PDPA)</SectionTitle>
+      <Card padded={false}>
+        {CONSENT_ROWS.map((r, i) => (
+          <View
+            key={r.key}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: 16,
+              borderTopWidth: i ? 1 : 0,
+              borderTopColor: c.border,
+            }}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt size={14.5} weight="semibold">
+                {r.title}
+              </Txt>
+              <Txt size={12.5} tone="muted">
+                {r.desc}
+              </Txt>
+            </View>
+            <Toggle
+              label={r.title}
+              value={value[r.key]}
+              onChange={(next) => {
+                setValue((v) => ({ ...v, [r.key]: next }));
+                m.mutate({ [r.key]: next });
+              }}
+            />
+          </View>
+        ))}
+      </Card>
+      <Txt size={12.5} tone="faint">
+        การยอมรับเงื่อนไขการใช้งานจำเป็นต่อการใช้บริการ จึงไม่มีปุ่มปิดที่นี่ — ถ้าไม่ต้องการใช้บริการแล้ว ลบบัญชีได้ที่หน้าตั้งค่า
+      </Txt>
+    </>
   );
 }

@@ -4,18 +4,26 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg"
 import type { Measurement } from "@/api/types";
 import { Txt } from "@/components/ui";
 import { formatDateShort } from "@/lib/format";
+import { displayWeightUnit, fromKg, primaryGrowthMetric } from "@/shared/speciesProfile";
 import { brand, useColors } from "@/theme";
 
-/** กราฟน้ำหนัก — = HealthTrendChart ของเว็บแบบย่อ (เส้น brand + พื้นไล่สี) */
-export function WeightChart({ measurements }: { measurements: Measurement[] }) {
+/**
+ * กราฟการเติบโต — = HealthTrendChart ของเว็บแบบย่อ (เส้น brand + พื้นไล่สี)
+ * ค่าหลักตามชนิด (lib/pets/speciesProfile.ts): ปลา/สัตว์เลื้อยคลาน = ความยาว, ที่เหลือ = น้ำหนัก (ตัวเล็กวาดเป็นกรัม)
+ */
+export function WeightChart({ measurements, species }: { measurements: Measurement[]; species?: string | null }) {
   const c = useColors();
   const [w, setW] = useState(0);
-  const pts = measurements
-    .filter((m) => m.weight_kg != null)
-    .map((m) => ({ t: new Date(m.measured_at).getTime(), v: Number(m.weight_kg), at: m.measured_at }))
+  const key = primaryGrowthMetric(species);
+  const raw = measurements
+    .filter((m) => m[key] != null)
+    .map((m) => ({ t: new Date(m.measured_at).getTime(), v: Number(m[key]), at: m.measured_at }))
     .sort((a, b) => a.t - b.t)
     .slice(-12);
-  if (pts.length < 2) return null;
+  if (raw.length < 2) return null;
+  const grams = key === "weight_kg" && displayWeightUnit(raw[raw.length - 1].v, species) === "g";
+  const unit = key === "body_length_cm" ? "ซม." : grams ? "กรัม" : "กก.";
+  const pts = grams ? raw.map((p) => ({ ...p, v: fromKg(p.v, "g") })) : raw;
 
   const h = 120;
   const pad = 10;
@@ -35,9 +43,9 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
         <Txt size={24} weight="bold">
           {last.v.toFixed(1)}
         </Txt>
-        <Txt tone="muted">กก.</Txt>
+        <Txt tone="muted">{unit}</Txt>
         <Txt size={13} tone={diff === 0 ? "muted" : diff > 0 ? "warn" : "brand"}>
-          {diff === 0 ? "คงที่" : `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff).toFixed(1)} กก.`}
+          {diff === 0 ? "คงที่" : `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff).toFixed(1)} ${unit}`}
         </Txt>
       </View>
       <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ height: h }}>

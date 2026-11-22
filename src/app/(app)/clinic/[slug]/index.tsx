@@ -22,6 +22,7 @@ import { absoluteUrl } from "@/api/config";
 import { chatApi } from "@/api/endpoints";
 import type { ClinicHour, Review } from "@/api/types";
 import { FavoriteButton } from "@/components/ClinicCard";
+import { OpenBadge } from "@/components/OpenBadge";
 import {
   Avatar,
   Button,
@@ -177,6 +178,7 @@ export default function ClinicScreen() {
                     ({clinic.rating_count} รีวิว)
                   </Txt>
                 </View>
+                <OpenBadge status={data.open_status} />
               </View>
             </View>
             {clinic.description && (

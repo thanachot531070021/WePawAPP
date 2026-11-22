@@ -1,7 +1,9 @@
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
 import { ApiError } from "@/api/client";
+import { WEB_BASE_URL } from "@/api/config";
 import { authApi } from "@/api/endpoints";
 import { AppBar, Button, Field, Notice, Screen, Txt } from "@/components/ui";
 import { APP_ROLES, UNSUPPORTED_ROLE_MESSAGE, useSession, type AppRole } from "@/state/session";
@@ -64,6 +66,17 @@ export default function SignIn() {
         onSubmitEditing={submit}
         testID="password"
       />
+      {/* ยังไม่มีตัวส่งอีเมล — เว็บบอกช่องทางติดต่อทีมงาน แล้วแอดมินออกรหัสชั่วคราวให้ */}
+      <Txt
+        size={13.5}
+        weight="semibold"
+        tone="brand"
+        align="right"
+        onPress={() => void WebBrowser.openBrowserAsync(`${WEB_BASE_URL}/auth/forgot-password`)}
+        style={{ marginTop: -8 }}
+      >
+        ลืมรหัสผ่าน?
+      </Txt>
       <Button label="เข้าสู่ระบบ" size="lg" full loading={busy} onPress={submit} testID="submit" />
       <View style={{ flexDirection: "row", justifyContent: "center", gap: 4 }}>
         <Txt tone="muted">ยังไม่มีบัญชี?</Txt>

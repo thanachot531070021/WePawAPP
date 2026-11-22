@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { ApiError } from "@/api/client";
 import { WEB_BASE_URL } from "@/api/config";
 import { BrandMark, Button, Card, ErrorView, LoadingView, Screen, Txt } from "@/components/ui";
+import { PasswordGate } from "@/components/ForceChangePassword";
 import { StaffSettings } from "@/components/staff/StaffSettings";
 import { useClinicOverview } from "@/features/staffQueries";
 import { useColors } from "@/theme";
@@ -60,5 +61,9 @@ export default function ClinicLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} />;
+  return (
+    <PasswordGate>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} />
+    </PasswordGate>
+  );
 }

@@ -1,3 +1,4 @@
+import type { ReceiptCard } from "@/shared/receiptCard";
 /**
  * รูปร่าง response ของ petcare /api/mobile/* — ตรงกับ SELECT ใน route ฝั่งเว็บ
  * pg คืน NUMERIC เป็น string (เช่น rating_avg, weight_kg) จึงพิมพ์เป็น string
@@ -43,6 +44,17 @@ export interface ClinicListItem {
   lng: number | null;
   distance_meters: number | null;
   species_list: string[];
+  /** สถานะเปิด/ปิดตอนนี้ที่ server คิดตามเวลาไทย (clinicOpenStatus) — backend เก่าไม่มี */
+  open_status?: OpenStatus | null;
+}
+
+/** = OpenStatus ของ petcare/lib/clinic/hours.ts */
+export interface OpenStatus {
+  open: boolean;
+  /** false = ไม่มีเวลาทำการให้คำนวณ → ไม่แสดงป้าย */
+  known: boolean;
+  /** เช่น "ปิด 20:00 น." / "เปิดพรุ่งนี้ 09:00 น." */
+  detail: string | null;
 }
 
 export interface ClinicHour {
@@ -98,6 +110,7 @@ export interface ClinicDetail {
     postal_code: string | null;
   };
   hours: ClinicHour[];
+  open_status?: OpenStatus | null;
   services: ClinicService[];
   images: { id: string; image_url: string; caption: string | null }[];
   vets: ClinicVet[];
@@ -155,6 +168,7 @@ export interface Measurement {
   body_condition_score: number | null;
   temperature_c: string | null;
   heart_rate_bpm: number | null;
+  respiratory_rate_bpm?: number | null;
   notes: string | null;
 }
 
@@ -200,6 +214,15 @@ export interface PetDetail {
     clinic_name: string;
     vet_name: string | null;
   }[];
+  /** ข้อมูลเพิ่มเติมที่เจ้าของจดเอง · null/ไม่มี = ไม่แสดงส่วนนี้ (บัญชีคลินิก/หมอ) */
+  custom_fields?: PetCustomField[] | null;
+}
+
+/** หัวข้อ + ข้อมูลที่เจ้าของตั้งเอง (petcare/lib/pets/customFields.ts) */
+export interface PetCustomField {
+  id: string;
+  label: string;
+  value: string;
 }
 
 export interface AppointmentRow {
@@ -287,6 +310,8 @@ export interface BookingData {
   }[];
   closedDays: number[];
   closedDates: string[];
+  /** ชนิดที่คลินิกรับ (clinic_species) · ว่าง = ไม่บล็อก — เช็กด้วย clinicAcceptsSpecies */
+  acceptedSpecies?: string[];
   periodWindows: { key: "morning" | "afternoon" | "evening"; start: string; end: string }[];
   homeVisit: {
     bookingEnabled: boolean;
@@ -338,6 +363,28 @@ export interface ChatAttachment {
   size: number;
   width?: number;
   height?: number;
+  /** การ์ดใบเสร็จที่คลินิกส่ง (type = RECEIPT_ATTACHMENT_TYPE ใน src/shared/receiptCard.ts) */
+  receipt?: ReceiptCard;
+}
+
+/** GET /api/mobile/receipts/[id] — lib/receipts/customerReceipt.ts ของเว็บ */
+export interface CustomerReceipt {
+  id: string;
+  receipt_no: string | null;
+  status: "paid" | "partial" | "unpaid" | "void" | "refunded";
+  clinic: { name: string; slug: string; phone: string | null; address: string | null; logo_url: string | null };
+  customer_name: string | null;
+  pet_name: string | null;
+  at: string;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  payment_method: string | null;
+  cash_received: number | null;
+  change_amount: number | null;
+  refunded_amount: number;
+  items: { name: string; quantity: number; unit_name: string | null; unit_price: number; line_discount: number; line_total: number }[];
 }
 
 export interface ChatMessage {

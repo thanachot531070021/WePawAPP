@@ -18,6 +18,7 @@ function fromPet(p: PetDetail["pet"]): PetFormValue {
     gender: (p.gender as PetFormValue["gender"]) ?? "unknown",
     birth_date: p.birth_date,
     weight_kg: p.weight_kg ? String(Number(p.weight_kg)) : "",
+    body_length_cm: "",
     color: p.color ?? "",
     distinctive_marks: p.distinctive_marks ?? "",
     is_neutered: !!p.is_neutered,

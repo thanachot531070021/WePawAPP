@@ -28,6 +28,7 @@ export const qk = {
   chatThreads: ["chat", "threads"] as const,
   chatMessages: (id: string) => ["chat", "messages", id] as const,
   chatUnread: ["chat", "unread"] as const,
+  receipt: (id: string) => ["receipt", id] as const,
   notes: ["notes"] as const,
   community: (filter: string, sort: string) => ["community", filter, sort] as const,
   question: (id: string) => ["community", "q", id] as const,

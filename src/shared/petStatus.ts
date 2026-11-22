@@ -16,7 +16,16 @@ export interface PetStatusInput {
   next_vaccine_name: string | null;
   vaccine_count: string;
   last_visit_at: string | null;
+  /** ไม่ส่ง = กติกาเดิม (ถือว่ามีวัคซีนประจำ) */
+  species?: string | null;
 }
+
+/**
+ * ชนิดที่มีวัคซีนพื้นฐานที่ควรฉีดทุกตัว — ชนิดอื่น (ปลา/สัตว์เลื้อยคลาน/หนู/นก/กระต่าย ฯลฯ)
+ * ไม่มีประวัติวัคซีนก็ไม่ใช่ "สิ่งที่ต้องทำ" · ตรงกับ routineVaccines ใน lib/pets/speciesProfile.ts
+ * (ไฟล์นี้ copy ไปแอปทั้งไฟล์ จึงไม่ import ข้ามไฟล์)
+ */
+const ROUTINE_VACCINE_SPECIES: readonly string[] = ["dog", "cat"];
 
 export function daysUntil(dateOnly: string): number {
   const target = new Date(`${dateOnly}T00:00:00`).getTime();
@@ -67,6 +76,14 @@ export function derivePetStatus(pet: PetStatusInput): PetStatus {
       ? ` · ตรวจล่าสุด ${formatDayMonth(pet.last_visit_at)}`
       : "";
     return { kind: "ok", text: `วัคซีนครบ${checked}` };
+  }
+  if (pet.species && !ROUTINE_VACCINE_SPECIES.includes(pet.species)) {
+    return {
+      kind: "ok",
+      text: pet.last_visit_at
+        ? `ตรวจล่าสุด ${formatDayMonth(pet.last_visit_at)}`
+        : "ไม่มีวัคซีนประจำ",
+    };
   }
   return { kind: "none" };
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CircleCheckBig, ImagePlus, Lock, SendHorizontal } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, TextInput, View } from "react-native";
@@ -11,8 +11,10 @@ import { caseApi } from "@/api/staffEndpoints";
 import type { ChatMessage } from "@/api/types";
 import { AppBar, confirmAsync, ErrorView, IconButton, LoadingView, toast, Txt } from "@/components/ui";
 import { formatDateShort, formatTime } from "@/lib/format";
+import { ReceiptChatCard } from "@/components/ReceiptChatCard";
 import { pickImageWithChoice } from "@/lib/images";
 import { qk } from "@/lib/queryClient";
+import { RECEIPT_ATTACHMENT_TYPE } from "@/shared/receiptCard";
 import { font, radius, useColors } from "@/theme";
 
 type Row = ChatMessage | { divider: string; id: string };
@@ -32,6 +34,11 @@ function Bubble({ m, myRole }: { m: ChatMessage; myRole: string }) {
   }
   // ข้อความของฉัน = ผู้ส่ง role เดียวกับฉันในห้องนี้ (my_role จาก server)
   const mine = m.sender_role === myRole;
+  // การ์ดใบเสร็จ: เฉพาะที่คลินิกส่ง · บรรทัดแรกของข้อความ ("ใบเสร็จ … · ยอด …") ซ้ำกับการ์ดจึงตัดออก
+  const receipt =
+    m.sender_role === "clinic" ? (m.attachments.find((a) => a.type === RECEIPT_ATTACHMENT_TYPE && a.receipt)?.receipt ?? null) : null;
+  const attachments = receipt ? m.attachments.filter((a) => a.type !== RECEIPT_ATTACHMENT_TYPE) : m.attachments;
+  const body = receipt && m.body?.startsWith("ใบเสร็จ ") ? m.body.slice(m.body.indexOf("\n") + 1 || m.body.length).trim() : m.body;
   return (
     <View style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "80%", marginVertical: 3, gap: 2 }}>
       {!mine && (
@@ -39,7 +46,14 @@ function Bubble({ m, myRole }: { m: ChatMessage; myRole: string }) {
           {m.sender_name ?? ROLE_NAME[m.sender_role]}
         </Txt>
       )}
-      {m.attachments.map((a) =>
+      {receipt && (
+        <ReceiptChatCard
+          receipt={receipt}
+          // เปิดใบเสร็จได้เฉพาะฝั่งเจ้าของ (คลินิกดูบิลในหน้ายอดขายของเว็บ)
+          onPress={myRole === "owner" ? () => router.push({ pathname: "/receipts/[id]", params: { id: receipt.id } }) : undefined}
+        />
+      )}
+      {attachments.map((a) =>
         a.type.startsWith("image/") ? (
           <Pressable key={a.url} onPress={() => Linking.openURL(absoluteUrl(a.url)!)}>
             <Image source={{ uri: absoluteUrl(a.url)! }} style={{ width: 200, height: 200, borderRadius: radius.lg }} contentFit="cover" />
@@ -50,7 +64,7 @@ function Bubble({ m, myRole }: { m: ChatMessage; myRole: string }) {
           </Txt>
         )
       )}
-      {!!m.body && (
+      {!!body && (
         <View
           style={{
             paddingHorizontal: 14,
@@ -64,7 +78,7 @@ function Bubble({ m, myRole }: { m: ChatMessage; myRole: string }) {
           }}
         >
           <Txt size={15} color={mine ? "#fff" : c.text}>
-            {m.body}
+            {body}
           </Txt>
         </View>
       )}

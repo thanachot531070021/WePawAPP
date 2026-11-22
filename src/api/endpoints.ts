@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type { ClinicSignupPayload } from "./staffTypes";
 import type {
+  CustomerReceipt,
   ActionOk,
   AppointmentDetail,
   AppointmentRow,
@@ -13,6 +14,7 @@ import type {
   ClinicListItem,
   CommunityQuestion,
   NotificationItem,
+  PetCustomField,
   PetDetail,
   PetRow,
   PetShare,
@@ -54,6 +56,9 @@ export const meApi = {
   get: () => api<{ user: User; profile: Profile | null }>("/api/mobile/me"),
   update: (body: { full_name: string; phone?: string | null; province?: string | null; district?: string | null }) =>
     api<ActionOk<null>>("/api/mobile/me", { method: "PATCH", body }),
+  /** เปิด/ปิดความยินยอม PDPA — ส่งเฉพาะค่าที่เปลี่ยน */
+  setConsents: (body: { consent_marketing?: boolean; consent_data_sharing?: boolean }) =>
+    api<{ ok: true }>("/api/mobile/me", { method: "PATCH", body }),
   setAvatar: (url: string | null) => api<ActionOk<null>>("/api/mobile/me/avatar", { method: "PUT", body: { url } }),
   changePassword: (current_password: string, new_password: string) =>
     api<ActionOk<null>>("/api/mobile/me/password", { body: { current_password, new_password } }),
@@ -117,6 +122,8 @@ export interface PetInput {
   gender?: string;
   birth_date?: string | null;
   weight_kg?: string | null;
+  /** ความยาวตอนเพิ่มน้อง (ปลา/สัตว์เลื้อยคลาน) → ค่าวัดแรก · ใช้ตอนสร้างเท่านั้น */
+  body_length_cm?: string | null;
   color?: string | null;
   distinctive_marks?: string | null;
   is_neutered?: boolean;
@@ -134,6 +141,9 @@ export const petApi = {
   remove: (id: string) => api<ActionOk<null>>(`/api/mobile/pets/${id}`, { method: "DELETE" }),
   addMeasurement: (id: string, body: Record<string, string | null | undefined>) =>
     api<ActionOk<{ measurementId: string }>>(`/api/mobile/pets/${id}/measurements`, { body }),
+  /** บันทึก "ข้อมูลเพิ่มเติม" ทั้งชุดตามลำดับ — แถวที่ไม่ส่ง = ลบ · error รายแถว fieldErrors label_<i>/value_<i> */
+  saveCustomFields: (id: string, fields: { id: string | null; label: string; value: string }[]) =>
+    api<ActionOk<{ fields: PetCustomField[] }>>(`/api/mobile/pets/${id}/custom-fields`, { method: "PUT", body: { fields } }),
   removeMeasurement: (mid: string) => api<ActionOk<unknown>>(`/api/mobile/measurements/${mid}`, { method: "DELETE" }),
   addVaccination: (id: string, body: Record<string, string | null | undefined>) =>
     api<ActionOk<{ vaccinationId: string }>>(`/api/mobile/pets/${id}/vaccinations`, { body }),
@@ -248,6 +258,11 @@ export const notificationApi = {
 };
 
 // ── chat ──
+/** ใบเสร็จที่คลินิกส่งเข้าแชท (การ์ดในห้องแชท) — 404 = ไม่ใช่บิลของเรา */
+export const receiptApi = {
+  get: (id: string) => api<{ receipt: CustomerReceipt }>(`/api/mobile/receipts/${id}`),
+};
+
 export const chatApi = {
   threads: () => api<{ items: ChatThread[]; role: "owner" | "clinic" | "vet" }>("/api/mobile/chat/threads"),
   start: (clinicId: string, opts: { petId?: string | null; subject?: string | null } = {}) =>

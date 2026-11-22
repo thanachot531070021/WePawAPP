@@ -40,7 +40,7 @@ import { gutter, useColors } from "@/theme";
 const CLINIC_TYPES: { id: ClinicSignupPayload["clinic"]["clinic_type"]; label: string; desc: string; Icon: LucideIcon }[] = [
   { id: "clinic", label: "คลินิก", desc: "คลินิกรักษาสัตว์ทั่วไป", Icon: Cross },
   { id: "hospital", label: "โรงพยาบาลสัตว์", desc: "รับเคสซับซ้อน 24 ชม.", Icon: Building2 },
-  { id: "special", label: "เฉพาะทาง", desc: "ผิวหนัง · ฟัน · Exotic", Icon: ShieldCheck },
+  { id: "special", label: "เฉพาะทาง", desc: "ผิวหนัง · ฟัน · สัตว์พิเศษ", Icon: ShieldCheck },
 ];
 const SPECIES: PetSpecies[] = ["dog", "cat", "rabbit", "bird", "reptile", "exotic"];
 /** ชื่อบริการภาษาไทยตรงกับเว็บ — server เดา review timing จากชื่อ */

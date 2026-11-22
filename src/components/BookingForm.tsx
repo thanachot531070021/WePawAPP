@@ -28,6 +28,8 @@ import { addDays, bkkDateKey, formatDateLong, formatPrice } from "@/lib/format";
 import { registerPush } from "@/lib/push";
 import { PERIOD_LABEL } from "@/shared/apptTone";
 import { formatThaiPhone, phoneDigits } from "@/shared/phone";
+import { getSpeciesLabel } from "@/shared/species";
+import { clinicAcceptsSpecies } from "@/shared/speciesAccept";
 import { radius, useColors } from "@/theme";
 
 const PICKUP = [
@@ -120,7 +122,10 @@ function BookingFormInner({ data, mode, title }: { data: BookingData; mode: "cli
   const isHome = mode === "home";
   const services = isHome ? data.services.filter((s) => s.home_visit_available) : data.services;
 
-  const [petId, setPetId] = useState<string | null>(data.pets.length === 1 ? data.pets[0].id : null);
+  // คลินิกไม่รับชนิดนี้ = เลือกไม่ได้ (requestBooking ของเว็บปฏิเสธอยู่แล้ว)
+  const accepts = (species: string) => clinicAcceptsSpecies(data.acceptedSpecies ?? [], species);
+  const bookable = data.pets.filter((p) => accepts(p.species));
+  const [petId, setPetId] = useState<string | null>(bookable.length === 1 ? bookable[0].id : null);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [date, setDate] = useState<string | null>(null);
   const [periods, setPeriods] = useState<string[]>([]);
@@ -302,11 +307,14 @@ function BookingFormInner({ data, mode, title }: { data: BookingData; mode: "cli
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {data.pets.map((p) => {
           const sel = p.id === petId;
+          const ok = accepts(p.species);
           return (
             <Pressable
               key={p.id}
-              onPress={() => setPetId(p.id)}
+              onPress={() => (ok ? setPetId(p.id) : toast.error(`${data.clinic.name} ไม่ได้รับ${getSpeciesLabel(p.species)}`))}
+              accessibilityState={{ disabled: !ok, selected: sel }}
               style={{
+                opacity: ok ? 1 : 0.45,
                 alignItems: "center",
                 gap: 6,
                 padding: 10,
@@ -321,6 +329,11 @@ function BookingFormInner({ data, mode, title }: { data: BookingData; mode: "cli
               <Txt size={13.5} weight={sel ? "semibold" : "regular"} numberOfLines={1}>
                 {p.name}
               </Txt>
+              {!ok && (
+                <Txt size={11} tone="faint" numberOfLines={1}>
+                  ไม่รับ{getSpeciesLabel(p.species)}
+                </Txt>
+              )}
             </Pressable>
           );
         })}

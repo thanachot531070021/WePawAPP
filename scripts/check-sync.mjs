@@ -17,6 +17,10 @@ const PAIRS = [
   ["src/shared/petStatus.ts", "lib/petStatus.ts"],
   ["src/shared/petAge.ts", "lib/petAge.ts"],
   ["src/shared/phone.ts", "lib/phone.ts"],
+  ["src/shared/speciesProfile.ts", "lib/pets/speciesProfile.ts"],
+  ["src/shared/customFields.ts", "lib/pets/customFields.ts"],
+  ["src/shared/speciesAccept.ts", "lib/clinic/speciesAccept.ts"],
+  ["src/shared/receiptCard.ts", "lib/receipts/receiptCard.ts"],
 ];
 
 /** ค่าที่พอร์ตด้วยมือ (ไม่ได้ copy ทั้งไฟล์) — ตรวจว่าค่าสีของทุกสถานะยังตรงกัน */

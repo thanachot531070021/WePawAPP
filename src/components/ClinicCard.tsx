@@ -9,6 +9,7 @@ import { clinicApi } from "@/api/endpoints";
 import type { ClinicListItem } from "@/api/types";
 import { Card, SpeciesIcon, toast, Txt } from "@/components/ui";
 import { formatDistance } from "@/lib/format";
+import { OpenBadge } from "./OpenBadge";
 import { qk } from "@/lib/queryClient";
 import { getSpeciesLabel } from "@/shared/species";
 import { brand, radius, useColors } from "@/theme";
@@ -103,6 +104,7 @@ export function ClinicCard({ clinic, favorited }: { clinic: ClinicListItem; favo
           <Txt size={16} weight="semibold" numberOfLines={1}>
             {clinic.name}
           </Txt>
+          <OpenBadge status={clinic.open_status} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
               <Star size={14} color={c.star} fill={rating ? c.star : "transparent"} />

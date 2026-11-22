@@ -6,6 +6,24 @@
 
 ---
 
+## S.W ตามเว็บรอบ 22 พ.ย. 2026 (ของที่เว็บเปลี่ยนหลัง 3 ต.ค.)
+
+| เรื่อง | แอป | ฝั่ง petcare |
+|---|---|---|
+| **ข้อมูลเพิ่มเติมของน้อง** (หัวข้อ+ข้อมูลที่เจ้าของตั้งเอง, migration 046) | การ์ดในแฟ้มน้อง (`PetCustomFieldsCard`) + หน้าแก้ `/pets/[id]/custom-fields` (`?add=<หัวข้อ>`) · ผู้ติดตามดูอย่างเดียว | อ่าน: `custom_fields` ใน `GET pets/[id]` (null = บัญชีคลินิก/หมอ) · เขียน: `PUT pets/[id]/custom-fields` → `savePetCustomFields` |
+| **ค่าวัดตามชนิดสัตว์** | หน้าบันทึกค่าวัดถามตาม `metricsByLevel(species,"owner")` (ปลา = ความยาวก่อน, ค่าอื่นพับใต้ "ค่าอื่น ๆ") · `WeightField` สลับ กก./กรัม (ส่ง กก. เสมอ) · ฟอร์มน้องถามความยาวตอนเพิ่มปลา/สัตว์เลื้อยคลาน, ซ่อนทำหมัน/ไมโครชิปเมื่อไม่เกี่ยว, ตัวอย่างพันธุ์ตามชนิด · แสดงน้ำหนักด้วย `formatWeight` (35 กรัม) · กราฟใช้ค่าหลักของชนิด | ใช้ route เดิม (รับ `respiratory_rate_bpm`, `body_length_cm` แล้ว) |
+| **ความยินยอม PDPA** | สวิตช์ในหน้าแก้โปรไฟล์ บันทึกทันที | `PATCH me` (`consent_*`) |
+| **รหัสผ่านชั่วคราว (ทุก role)** | `PasswordGate` ใน `(app)` และ `(clinic)` (เดิมมีแค่หมอ) | `must_change_password` ใน `GET me` |
+| **ลืมรหัสผ่าน** | ลิงก์ในหน้าเข้าสู่ระบบ → เปิด `/auth/forgot-password` ของเว็บ | — |
+| **จองคิว: ชนิดที่คลินิกรับ** | น้องที่คลินิกไม่รับกดเลือกไม่ได้ (ป้าย "ไม่รับนก") | `acceptedSpecies` ใน booking-data |
+| **เปิด/ปิดตอนนี้** | `OpenBadge` บนการ์ดค้นหา + หน้าคลินิก — **ใช้สถานะจาก server ไม่คิดจากนาฬิกาเครื่อง** | `open_status` ใน `clinics` + `clinics/[slug]` (`loadOpenStatuses`) · `clinics` ค้นชื่อบริการ/จังหวัด + "สัตว์พิเศษ" เหมือน `/search` |
+
+ไฟล์กติกาที่ copy จากเว็บเพิ่ม (ตรวจด้วย `npm run sync:check`): `src/shared/speciesProfile.ts`, `customFields.ts`, `speciesAccept.ts`
+
+**ยังไม่ทำในแอป**: ครอปตามสัดส่วนแต่ละจุดแบบเว็บ (แอปใช้ตัวครอปของระบบ `allowsEditing` แบบ 1:1 สำหรับรูปโปรไฟล์/รูปน้อง อยู่แล้ว — iOS ครอปได้แค่สี่เหลี่ยมจัตุรัส) · ปก/โลโก้คลินิกยังแก้ในแอปไม่ได้
+
+**ทดสอบ**: `npm run check` ผ่าน (tsc, lint, 50 tests, sync) · Playwright บนเวอร์ชันเว็บ 390×844 โหมดสว่าง+มืด: เข้าสู่ระบบ (มีลิงก์ลืมรหัสผ่าน) → แฟ้มนก "35 กรัม" → กดหัวข้อตัวอย่าง → เพิ่ม 3 หัวข้อ (เว้นข้อมูล → ฟ้องรายแถว) → บันทึก → การ์ดอัปเดตทันที → ค่าวัดนก (กรัม) / ปลา (ความยาว) → ความยินยอม → การ์ดค้นหา "ปิดอยู่ · เปิด 10:00 น." → ลบหัวข้อทั้งหมด (DB เหลือ 0)
+
 ## S.R Role หมอ + คลินิก (3 ต.ค. 2026)
 
 กติกาสิทธิ์ทั้งหมดตามเว็บ — route ฝั่ง petcare เรียก server action / helper ตัวเดิม (`requireClinicAdmin`, `requireVet`, `lib/clinic/visibility.ts`)
@@ -294,6 +312,13 @@ WePawAPP/
 **ไม่ทำในแอป:** จ่ายเงินออนไลน์, telemedicine, ทุกอย่างของคลินิก/หมอ/POS/admin
 
 ---
+
+### S.X ใบเสร็จในแชท (22 พ.ย. 2026)
+
+- คลินิกส่งใบเสร็จเข้าแชทจากเว็บ (POS/หน้ายอดขาย) → ข้อความมี attachment ชนิด `application/vnd.petcare.receipt` + `receipt` (การ์ด) — [src/shared/receiptCard.ts](src/shared/receiptCard.ts) copy จาก petcare `lib/receipts/receiptCard.ts` (`sync:check` ตรวจ)
+- ห้องแชท (`(shared)/chat/[id]`) วาด [ReceiptChatCard](src/components/ReceiptChatCard.tsx) เฉพาะข้อความจากคลินิก · เจ้าของกดแล้วไป [receipts/[id]](src/app/(app)/receipts/[id].tsx) → `GET /api/mobile/receipts/[id]` (404 = ไม่ใช่บิลของเรา)
+- แอปรุ่นเก่า: เห็นข้อความ "ใบเสร็จ … · ยอด …" + ไฟล์แนบ 📎 (ลิงก์เว็บ) — ใช้งานได้ ไม่พัง
+- ยังไม่มีในแอป: หน้านับสต๊อกของคลินิก (ใช้เว็บบนมือถือ `/clinic-admin/stock-count`), ปุ่มส่งใบเสร็จฝั่งคลินิก
 
 ## 5. สิ่งที่ต้องแก้ใน repo `petcare`
 

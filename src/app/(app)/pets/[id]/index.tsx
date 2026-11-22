@@ -18,6 +18,7 @@ import { Pressable, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { petApi } from "@/api/endpoints";
 import type { PetDetail } from "@/api/types";
+import { PetCustomFieldsCard } from "@/components/PetCustomFields";
 import { WeightChart } from "@/components/WeightChart";
 import {
   AppBar,
@@ -44,6 +45,7 @@ import { toneColors, toneOf } from "@/shared/apptTone";
 import { estimateHumanAge, formatPetAge } from "@/shared/petAge";
 import { derivePetStatus } from "@/shared/petStatus";
 import { GENDER_LABEL, getSpeciesLabel, type PetSpecies } from "@/shared/species";
+import { formatMetric, formatWeight, measurementItems, primaryGrowthMetric } from "@/shared/speciesProfile";
 import { usePetStatusTone } from "@/components/PetCard";
 import { radius, useColors } from "@/theme";
 
@@ -97,6 +99,7 @@ export default function PetProfileScreen() {
     next_vaccine_name: nextVax?.vaccine_name ?? null,
     vaccine_count: String(data.vaccinations.length),
     last_visit_at: data.medical_records[0]?.visit_date ?? null,
+    species: pet.species,
   });
   const human = estimateHumanAge(pet.species as PetSpecies, pet.birth_date);
 
@@ -121,7 +124,7 @@ export default function PetProfileScreen() {
       footer={
         canEdit ? (
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <Button label="น้ำหนัก" icon={Scale} variant="outline" style={{ flex: 1 }} onPress={() => router.push(`/pets/${id}/measurement`)} />
+            <Button label="ค่าวัด" icon={Scale} variant="outline" style={{ flex: 1 }} onPress={() => router.push(`/pets/${id}/measurement`)} />
             <Button label="วัคซีน" icon={Syringe} variant="outline" style={{ flex: 1 }} onPress={() => router.push(`/pets/${id}/vaccination`)} />
             <Button label="จองคิว" icon={CalendarPlus} style={{ flex: 1 }} onPress={() => router.navigate("/")} />
           </View>
@@ -148,7 +151,15 @@ export default function PetProfileScreen() {
 
       <Card style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12 }}>
         <Fact label="อายุ" value={pet.birth_date ? formatPetAge(pet.birth_date) : "ไม่ทราบ"} />
-        <Fact label="น้ำหนัก" value={pet.weight_kg ? `${Number(pet.weight_kg)} กก.` : "—"} />
+        {primaryGrowthMetric(pet.species) === "weight_kg" ? (
+          <Fact label="น้ำหนัก" value={formatWeight(pet.weight_kg, pet.species) ?? "—"} />
+        ) : (
+          // ปลา/สัตว์เลื้อยคลาน: ค่าการเติบโตหลักคือความยาว (lib/pets/speciesProfile.ts)
+          <Fact
+            label="ความยาว"
+            value={formatMetric("body_length_cm", data.measurements.find((m) => m.body_length_cm)?.body_length_cm) ?? "—"}
+          />
+        )}
         <Fact label="สี" value={pet.color ?? "—"} />
         {human && <Fact label="เทียบอายุคน" value={human.label} />}
         {pet.microchip_id && <Fact label="ไมโครชิป" value={pet.microchip_id} />}
@@ -164,6 +175,10 @@ export default function PetProfileScreen() {
             {pet.allergies}
           </Txt>
         </Notice>
+      )}
+
+      {data.custom_fields && (
+        <PetCustomFieldsCard petId={pet.id} petName={pet.name} fields={data.custom_fields} canEdit={canEdit} />
       )}
 
       <UpcomingAppointments data={data} />
@@ -185,7 +200,7 @@ export default function PetProfileScreen() {
         </Card>
       ) : (
         <Card style={{ gap: 12 }}>
-          <WeightChart measurements={data.measurements} />
+          <WeightChart measurements={data.measurements} species={pet.species} />
           <MeasurementList data={data} canEdit={canEdit} />
         </Card>
       )}
@@ -318,12 +333,10 @@ function MeasurementList({ data, canEdit }: { data: PetDetail; canEdit: boolean 
   return (
     <View>
       {data.measurements.slice(0, 6).map((m, i) => {
-        const parts = [
-          m.weight_kg && `${Number(m.weight_kg)} กก.`,
-          m.height_cm && `สูง ${Number(m.height_cm)} ซม.`,
-          m.temperature_c && `${Number(m.temperature_c)}°C`,
-          m.body_condition_score && `BCS ${m.body_condition_score}`,
-        ].filter(Boolean);
+        // ค่าทุกช่องที่มี เรียงตามความสำคัญของชนิด (ปลา = ความยาวก่อน, นก/หนู = กรัม) — lib/pets/speciesProfile.ts
+        const parts = measurementItems(m, data.pet.species).map((x) =>
+          x.key === "weight_kg" ? x.value : `${x.label} ${x.value}`
+        );
         return (
           <View
             key={m.id}

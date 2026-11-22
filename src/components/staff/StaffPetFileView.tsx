@@ -9,6 +9,7 @@ import { formatDateShort } from "@/lib/format";
 import { formatPetAge } from "@/shared/petAge";
 import { formatThaiPhone } from "@/shared/phone";
 import { GENDER_LABEL, getSpeciesLabel } from "@/shared/species";
+import { formatWeight, primaryGrowthMetric } from "@/shared/speciesProfile";
 import { VISIT_TYPE_LABEL } from "@/shared/visitType";
 import { useColors } from "@/theme";
 
@@ -33,7 +34,7 @@ export function StaffPetFileView({ data, top }: { data: StaffPetFile; top?: Reac
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
             {pet.gender && pet.gender !== "unknown" && <Pill label={GENDER_LABEL[pet.gender]} color={c.textMuted} bg={c.surfaceAlt} />}
             {pet.is_neutered && <Pill label="ทำหมันแล้ว" color={c.brandSoftText} bg={c.brandSoft} icon={ShieldCheck} />}
-            {pet.weight_kg && <Pill label={`${Number(pet.weight_kg)} กก.`} color={c.textMuted} bg={c.surfaceAlt} />}
+            {pet.weight_kg && <Pill label={formatWeight(pet.weight_kg, pet.species) ?? ""} color={c.textMuted} bg={c.surfaceAlt} />}
           </View>
         </View>
       </Card>
@@ -150,11 +151,11 @@ export function StaffPetFileView({ data, top }: { data: StaffPetFile; top?: Reac
         </Card>
       )}
 
-      {data.measurements.some((m) => m.weight_kg) && (
+      {data.measurements.some((m) => (m as unknown as Measurement)[primaryGrowthMetric(pet.species)]) && (
         <>
-          <SectionTitle>น้ำหนัก</SectionTitle>
+          <SectionTitle>{primaryGrowthMetric(pet.species) === "weight_kg" ? "น้ำหนัก" : "ความยาว"}</SectionTitle>
           <Card>
-            <WeightChart measurements={data.measurements as unknown as Measurement[]} />
+            <WeightChart measurements={data.measurements as unknown as Measurement[]} species={pet.species} />
           </Card>
         </>
       )}

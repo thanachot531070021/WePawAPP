@@ -6,6 +6,8 @@ import { CalendarPicker, Checkbox, Chip, Field, Notice, PetAvatar, SectionTitle,
 import { formatDateLong, bkkDateKey } from "@/lib/format";
 import { pickImageWithChoice } from "@/lib/images";
 import { ALL_SPECIES, SPECIES_LABEL } from "@/shared/species";
+import { breedHint, metricLevel, speciesProfile } from "@/shared/speciesProfile";
+import { WeightField } from "./WeightField";
 import { radius, useColors } from "@/theme";
 
 export interface PetFormValue {
@@ -14,7 +16,10 @@ export interface PetFormValue {
   breed: string;
   gender: "male" | "female" | "unknown";
   birth_date: string | null;
+  /** กก. เสมอ — WeightField แปลงจากกรัมให้ */
   weight_kg: string;
+  /** ซม. — ถามตอนเพิ่มปลา/สัตว์เลื้อยคลาน (ค่าวัดแรก) */
+  body_length_cm: string;
   color: string;
   distinctive_marks: string;
   is_neutered: boolean;
@@ -30,6 +35,7 @@ export const EMPTY_PET: PetFormValue = {
   gender: "unknown",
   birth_date: null,
   weight_kg: "",
+  body_length_cm: "",
   color: "",
   distinctive_marks: "",
   is_neutered: false,
@@ -48,6 +54,7 @@ export function toPetInput(v: PetFormValue): PetInput {
     gender: v.gender,
     birth_date: v.birth_date,
     weight_kg: s(v.weight_kg),
+    body_length_cm: s(v.body_length_cm),
     color: s(v.color),
     distinctive_marks: s(v.distinctive_marks),
     is_neutered: v.is_neutered,
@@ -73,6 +80,10 @@ export function PetForm({
   const [uploading, setUploading] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
   const set = <K extends keyof PetFormValue>(k: K, v: PetFormValue[K]) => onChange({ ...value, [k]: v });
+  // ฟอร์มปรับตามชนิด (lib/pets/speciesProfile.ts): หน่วยน้ำหนัก, ถามความยาว, ทำหมัน/ไมโครชิปเกี่ยวไหม
+  const profile = speciesProfile(value.species);
+  const askLength = !petId && metricLevel(value.species, "body_length_cm", "owner") === "primary";
+  const weightOptional = metricLevel(value.species, "weight_kg", "owner") !== "primary";
 
   async function changePhoto() {
     const file = await pickImageWithChoice(true);
@@ -125,7 +136,7 @@ export function PetForm({
         ))}
       </View>
 
-      <Field label="สายพันธุ์" value={value.breed} onChangeText={(t) => set("breed", t)} placeholder="เช่น ชิสุ, เปอร์เซีย" />
+      <Field label="สายพันธุ์" value={value.breed} onChangeText={(t) => set("breed", t)} placeholder={breedHint(value.species)} />
 
       <SectionTitle>เพศ</SectionTitle>
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -139,9 +150,11 @@ export function PetForm({
           <Chip key={k} label={l} selected={value.gender === k} onPress={() => set("gender", k)} />
         ))}
       </View>
-      <Checkbox checked={value.is_neutered} onChange={(v) => set("is_neutered", v)}>
-        ทำหมันแล้ว
-      </Checkbox>
+      {(profile.neuterRelevant || value.is_neutered) && (
+        <Checkbox checked={value.is_neutered} onChange={(v) => set("is_neutered", v)}>
+          ทำหมันแล้ว
+        </Checkbox>
+      )}
 
       <View style={{ gap: 6 }}>
         <Txt size={13.5} weight="medium" tone="muted">
@@ -168,17 +181,30 @@ export function PetForm({
         )}
       </View>
 
-      <Field
-        label="น้ำหนัก"
-        value={value.weight_kg}
-        onChangeText={(t) => set("weight_kg", t.replace(/[^\d.]/g, ""))}
-        keyboardType="decimal-pad"
-        suffix="กก."
+      {askLength && (
+        <Field
+          label={profile.lengthLabel}
+          value={value.body_length_cm}
+          onChangeText={(t) => set("body_length_cm", t.replace(/[^\d.]/g, ""))}
+          keyboardType="decimal-pad"
+          suffix="ซม."
+          error={errors.body_length_cm}
+          hint={profile.lengthHint}
+        />
+      )}
+      <WeightField
+        species={value.species}
+        kg={value.weight_kg}
+        onChangeKg={(kg) => set("weight_kg", kg)}
+        label={weightOptional ? "น้ำหนัก (ถ้าชั่งได้)" : "น้ำหนัก"}
         error={errors.weight_kg}
+        hint={profile.weightHint}
       />
       <Field label="สี" value={value.color} onChangeText={(t) => set("color", t)} maxLength={50} />
       <Field label="ตำหนิ / จุดสังเกต" value={value.distinctive_marks} onChangeText={(t) => set("distinctive_marks", t)} maxLength={255} />
-      <Field label="เลขไมโครชิป" value={value.microchip_id} onChangeText={(t) => set("microchip_id", t)} maxLength={50} />
+      {(profile.microchipRelevant || !!value.microchip_id) && (
+        <Field label="เลขไมโครชิป" value={value.microchip_id} onChangeText={(t) => set("microchip_id", t)} maxLength={50} />
+      )}
       <Field
         label="ประวัติแพ้ยา / อาหาร"
         value={value.allergies}
