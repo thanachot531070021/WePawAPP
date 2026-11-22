@@ -5,11 +5,11 @@ import {
   CalendarPlus,
   Pencil,
   QrCode,
+  Stethoscope,
   Ruler,
   Scale,
   Share2,
   ShieldCheck,
-  Stethoscope,
   Syringe,
   Trash2,
 } from "lucide-react-native";
@@ -113,6 +113,9 @@ export default function PetProfileScreen() {
           back
           right={
             <>
+              {isOwner && (
+                <IconButton icon={Stethoscope} label="QR ให้คลินิก" onPress={() => router.push(`/pets/${id}/clinic-qr`)} />
+              )}
               <IconButton icon={QrCode} label="QR ประจำตัวน้อง" onPress={() => setQrOpen(true)} />
               {isOwner && <IconButton icon={Share2} label="แชร์" onPress={() => router.push(`/pets/${id}/sharing`)} />}
               {canEdit && <IconButton icon={Pencil} label="แก้ไข" onPress={() => router.push(`/pets/${id}/edit`)} />}
@@ -274,9 +277,20 @@ export default function PetProfileScreen() {
           </View>
           <Txt tone="muted" align="center">
             {data.public_tag
-              ? `คนทั่วไปสแกนด้วยกล้องมือถือ → เห็นหน้า${pet.name}และติดต่อเจ้าของ · คลินิก/POS สแกน → เปิดแฟ้ม${pet.name}`
+              ? `QR ประจำตัว/ป้ายห้อยคอ — คนทั่วไปสแกนเห็นหน้า${pet.name}และติดต่อเจ้าของได้ · ที่คลินิกให้ใช้ “QR ให้คลินิก” แทน (เปิดแฟ้มได้ทันที)`
               : `ให้คลินิกสแกน QR นี้เพื่อเปิดแฟ้มของ${pet.name} — คลินิกจะเห็นเฉพาะน้องตัวนี้`}
           </Txt>
+          {isOwner && (
+            <Button
+              label="QR ให้คลินิก"
+              icon={Stethoscope}
+              full
+              onPress={() => {
+                setQrOpen(false);
+                router.push(`/pets/${pet.id}/clinic-qr`);
+              }}
+            />
+          )}
           {data.public_tag && (
             <Button
               label={isOwner ? "ตั้งค่า QR / แจ้งน้องหาย" : "ดูรายละเอียด QR"}

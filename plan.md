@@ -339,7 +339,9 @@ WePawAPP/
 - **ต้องใช้ build ใหม่** — เพิ่ม native module `expo-camera` (+ plugin ใน app.config.ts) อัปเดต OTA ไม่พอ
 - คลินิก: เมนู "จัดการ → สแกน QR น้อง" = `(clinic)/clinic-admin/scan-pet.tsx` (กล้อง `CameraView` QR + วางลิงก์) → `POST /api/mobile/clinic/pet-scan`
   - `access`: `linked` เปิดแฟ้ม · `related` (เคยมีนัด/บิล) เพิ่มเข้าคลินิก (`action: "link"`) · `needs_consent` เห็นแค่ชื่อต้น + เบอร์ 4 ตัวท้าย → `action: "request"` แล้วตรวจซ้ำทุก 5 วิ
+- **QR ให้คลินิก** (เจ้าของ): `(app)/pets/[id]/clinic-qr.tsx` ← `POST /api/mobile/pets/[id]/handoff` → `petcare:handoff:<token>` อายุ 10 นาที (refetch ทุก 9 นาที) · คลินิก/POS สแกน = เปิดแฟ้มทันที ไม่ต้องขออนุญาต · ปุ่มใน header หน้าน้อง + Sheet QR ประจำตัว
 - เจ้าของ: แจ้งเตือน action_url `/pet-access/<token>` → `(app)/pet-access/[token].tsx` (`GET/POST /api/mobile/pet-access/[token]`) · map ใน `src/lib/links.ts`
+  - 2 แบบ (`mode`): `pet` = คลินิกสแกน QR น้องตัวนั้น · `owner` = POS เว็บค้นด้วยเบอร์/อีเมล → เจ้าของเลือกน้องที่ให้เปิดแฟ้ม (`POST { pet_ids }`, ว่างได้ = เป็นลูกค้าอย่างเดียว)
 
 ## 5. สิ่งที่ต้องแก้ใน repo `petcare`
 

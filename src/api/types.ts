@@ -502,12 +502,15 @@ export interface ActionOk<T> {
   data: T;
 }
 
-/** คำขอเปิดแฟ้มน้องจากคลินิก — petcare GET /api/mobile/pet-access/<token> */
+/** คำขอจากคลินิก — petcare GET /api/mobile/pet-access/<token> (lib/clinic/petAccess.ts) */
 export type PetAccessView =
   | { status: "invalid" }
   | {
+      /** linked = อนุญาตครบแล้ว */
       status: "pending" | "linked" | "not_owner";
+      /** pet = คลินิกสแกน QR ของน้องตัวนี้ · owner = คลินิกค้นด้วยเบอร์/อีเมล เจ้าของเลือกน้องเอง */
+      mode: "pet" | "owner";
       expiresAt: string;
-      pet: { id: string; name: string; species: string; avatar_url: string | null };
+      pets: { id: string; name: string; species: string; avatar_url: string | null; linked: boolean }[];
       clinic: { id: string; name: string; logo_url: string | null; area: string | null; slug: string | null };
     };

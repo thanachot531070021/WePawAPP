@@ -107,8 +107,9 @@ export interface ClinicSearch {
 /** คลินิกขอเปิดแฟ้มน้อง (แจ้งเตือน → /pet-access/<token>) — เจ้าของกดอนุญาต */
 export const petAccessApi = {
   get: (token: string) => api<{ data: PetAccessView }>(`/api/mobile/pet-access/${encodeURIComponent(token)}`),
-  approve: (token: string) =>
-    api<ActionOk<{ petId: string }>>(`/api/mobile/pet-access/${encodeURIComponent(token)}`, { method: "POST" }),
+  /** mode=owner: pet_ids = น้องที่ให้คลินิกเปิดแฟ้ม (ว่างได้ = เป็นลูกค้าอย่างเดียว) */
+  approve: (token: string, pet_ids?: string[]) =>
+    api<ActionOk<{ petIds: string[] }>>(`/api/mobile/pet-access/${encodeURIComponent(token)}`, { body: { pet_ids } }),
 };
 
 export const clinicApi = {
@@ -159,6 +160,9 @@ export const petApi = {
   /** ตั้งค่า QR ประจำตัวน้อง (เฉพาะเจ้าของ) · show_phone ต้องมีเบอร์ในบัญชีก่อน (fieldErrors.show_phone) */
   updatePublicTag: (id: string, body: PetPublicTagSettings) =>
     api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { method: "PUT", body }),
+  /** QR ให้คลินิก (เจ้าของเท่านั้น) — คลินิก/POS สแกน = ยินยอมเปิดแฟ้ม · อายุ 10 นาที */
+  handoff: (id: string) =>
+    api<ActionOk<{ value: string; expiresAt: string }>>(`/api/mobile/pets/${id}/handoff`, { method: "POST" }),
   /** สร้าง QR ใหม่ — QR เดิมใช้ไม่ได้ทันที */
   regeneratePublicTag: (id: string) =>
     api<ActionOk<PetPublicTag>>(`/api/mobile/pets/${id}/public-tag`, { body: { action: "regenerate" } }),
