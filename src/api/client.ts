@@ -54,6 +54,8 @@ const ERROR_TEXT: Record<string, string> = {
   thread_closed: "ห้องแชทนี้ปิดแล้ว",
   read_only: "ห้องนี้อ่านได้อย่างเดียว",
   empty_message: "พิมพ์ข้อความก่อนส่ง",
+  no_permission: "บัญชีของคุณไม่มีสิทธิ์ทำรายการนี้ — ติดต่อเจ้าของคลินิก",
+  choose_clinic: "เลือกคลินิกที่จะใช้งานก่อน (เมนูสลับพื้นที่ใช้งาน)",
 };
 
 function readableError(raw: unknown, status: number): string {

@@ -10,7 +10,7 @@ import { ToastHost } from "@/components/ui";
 import { listenNotificationTaps, registerPush } from "@/lib/push";
 import { queryClient } from "@/lib/queryClient";
 import { usePrefs } from "@/state/prefs";
-import { homeFor, useSession } from "@/state/session";
+import { areaFor, homeForArea, useSession } from "@/state/session";
 import { brand, useColors } from "@/theme";
 import { fontAssets } from "@/theme/fonts";
 
@@ -20,6 +20,10 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts(fontAssets);
   const status = useSession((s) => s.status);
   const role = useSession((s) => s.user?.role);
+  const workspace = useSession((s) => s.workspace);
+  const choosing = useSession((s) => s.choosingWorkspace);
+  // กลุ่มหน้าที่ใช้อยู่ — ตามพื้นที่ใช้งานที่เลือก (ไม่เลือก = ตาม role เดิม)
+  const area = areaFor(role, workspace);
   const segments = useSegments();
   const c = useColors();
 
@@ -45,9 +49,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (status !== "signedIn" || !role) return;
     const group = segments[0];
-    const expected = role === "clinic_admin" ? "(clinic)" : role === "vet" ? "(vet)" : "(app)";
-    if (group !== expected && group !== "(shared)") router.replace(homeFor(role));
-  }, [status, role, segments]);
+    // เพิ่งเข้าสู่ระบบ → เลือกพื้นที่ใช้งานก่อน (มีที่เดียว หน้านั้นพาไปเอง)
+    if (choosing) {
+      if (segments[1] !== "workspace") router.replace("/workspace");
+      return;
+    }
+    const expected = area === "clinic" ? "(clinic)" : area === "vet" ? "(vet)" : "(app)";
+    if (group !== expected && group !== "(shared)") router.replace(homeForArea(area));
+  }, [status, role, segments, area, choosing]);
 
   const navTheme = useMemo(() => {
     const base = c.isDark ? DarkTheme : DefaultTheme;
@@ -70,13 +79,13 @@ export default function RootLayout() {
               <Stack.Protected guard={!signedIn}>
                 <Stack.Screen name="(auth)" />
               </Stack.Protected>
-              <Stack.Protected guard={signedIn && role === "clinic_admin"}>
+              <Stack.Protected guard={signedIn && area === "clinic"}>
                 <Stack.Screen name="(clinic)" />
               </Stack.Protected>
-              <Stack.Protected guard={signedIn && role === "vet"}>
+              <Stack.Protected guard={signedIn && area === "vet"}>
                 <Stack.Screen name="(vet)" />
               </Stack.Protected>
-              <Stack.Protected guard={signedIn && role !== "clinic_admin" && role !== "vet"}>
+              <Stack.Protected guard={signedIn && area === "app"}>
                 <Stack.Screen name="(app)" />
               </Stack.Protected>
               <Stack.Protected guard={signedIn}>

@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/queryClient";
 const TOKEN_KEY = "wepaw.token";
 const USER_KEY = "wepaw.user";
 const VET_CLINIC_KEY = "wepaw.vetClinic";
+const WORKSPACE_KEY = "wepaw.workspace";
 
 /** role ที่แอปรองรับ — super_admin ใช้เว็บอย่างเดียว (server ปฏิเสธที่ login อยู่แล้ว) */
 export type AppRole = "pet_owner" | "clinic_admin" | "vet";
@@ -21,6 +22,27 @@ export function homeFor(role: string | undefined): "/" | "/clinic-admin" | "/vet
   return "/";
 }
 
+/**
+ * พื้นที่ใช้งาน — 1 บัญชีเข้าได้หลายที่ (น้องของฉัน / ฝั่งหมอ / หลังบ้านคลินิกแต่ละแห่ง) เหมือน /workspace ของเว็บ
+ * workspace: "personal" | "vet" | "clinic:<id>" | "clinic-signup" | null (= ตาม role เดิม)
+ */
+export type Area = "app" | "clinic" | "vet";
+export function areaFor(role: string | undefined, workspace: string | null): Area {
+  if (workspace?.startsWith("clinic")) return "clinic";
+  if (workspace === "vet") return "vet";
+  if (workspace === "personal") return "app";
+  if (role === "clinic_admin") return "clinic";
+  if (role === "vet") return "vet";
+  return "app";
+}
+export function homeForArea(area: Area): "/" | "/clinic-admin" | "/vet" {
+  return area === "clinic" ? "/clinic-admin" : area === "vet" ? "/vet" : "/";
+}
+/** คลินิกที่เลือก → header x-clinic-id (server ตรวจว่าเป็นสมาชิกจริงทุก request) */
+export function clinicIdOf(workspace: string | null): string | null {
+  return workspace?.startsWith("clinic:") ? workspace.slice(7) : null;
+}
+
 type Status = "loading" | "signedOut" | "signedIn";
 
 interface SessionState {
@@ -29,7 +51,14 @@ interface SessionState {
   user: User | null;
   /** โหลด token จากเครื่อง แล้วต่ออายุกับ server (sliding 7 วัน) */
   bootstrap: () => Promise<void>;
-  signIn: (result: AuthResult) => Promise<void>;
+  /** เข้าสู่ระบบใหม่ → ถามพื้นที่ใช้งานก่อน (ถ้ามีหลายที่) · ต่ออายุ token ไม่ถามซ้ำ */
+  signIn: (result: AuthResult, opts?: { keepWorkspace?: boolean }) => Promise<void>;
+  workspace: string | null;
+  /** true = เพิ่งเข้าสู่ระบบ ต้องเลือกพื้นที่ใช้งานก่อน (หน้า /workspace) */
+  choosingWorkspace: boolean;
+  setWorkspace: (key: string | null) => void;
+  /** เปิดหน้าเลือกพื้นที่ใช้งาน (เมนู "สลับพื้นที่ใช้งาน") */
+  askWorkspace: () => void;
   signOut: () => Promise<void>;
   setUser: (user: User) => void;
   /** คลินิกที่หมอเลือก (หมอสังกัดหลายคลินิก) — ส่งเป็น header x-vet-clinic แทน cookie ของเว็บ */
@@ -44,11 +73,13 @@ export const useSession = create<SessionState>((set, get) => ({
   token: null,
   user: null,
   vetClinicId: null,
+  workspace: null,
+  choosingWorkspace: false,
 
   bootstrap: async () => {
     const token = await storage.get(TOKEN_KEY);
     const cachedUser = await storage.get(USER_KEY);
-    set({ vetClinicId: await storage.get(VET_CLINIC_KEY) });
+    set({ vetClinicId: await storage.get(VET_CLINIC_KEY), workspace: await storage.get(WORKSPACE_KEY) });
     if (!token) {
       set({ status: "signedOut" });
       return;
@@ -61,24 +92,42 @@ export const useSession = create<SessionState>((set, get) => ({
     });
     try {
       const fresh = await authApi.refresh();
-      await get().signIn(fresh);
+      await get().signIn(fresh, { keepWorkspace: true });
     } catch {
       // 401 → client เรียก signOut ให้แล้ว · เน็ตหลุด → ใช้ token เดิมต่อ
     }
   },
 
-  signIn: async (result) => {
+  signIn: async (result, opts) => {
     await storage.set(TOKEN_KEY, result.token);
     await storage.set(USER_KEY, JSON.stringify(result.user));
-    set({ token: result.token, user: result.user, status: "signedIn" });
+    if (opts?.keepWorkspace) {
+      set({ token: result.token, user: result.user, status: "signedIn" });
+      return;
+    }
+    // เข้าสู่ระบบใหม่ทุกครั้ง: ลืมพื้นที่เดิม แล้วถามใหม่ (มีที่เดียว หน้า /workspace พาไปเอง)
+    await storage.remove(WORKSPACE_KEY);
+    queryClient.clear();
+    set({ token: result.token, user: result.user, status: "signedIn", workspace: null, choosingWorkspace: true });
   },
+
+  setWorkspace: (key) => {
+    if (key) void storage.set(WORKSPACE_KEY, key);
+    else void storage.remove(WORKSPACE_KEY);
+    // ข้อมูลผูกกับพื้นที่ (คลินิกคนละแห่ง / ฝั่งเจ้าของ) — ล้าง cache ทั้งชุด
+    queryClient.clear();
+    set({ workspace: key, choosingWorkspace: false });
+  },
+
+  askWorkspace: () => set({ choosingWorkspace: true }),
 
   signOut: async () => {
     await storage.remove(TOKEN_KEY);
     await storage.remove(USER_KEY);
     await storage.remove(VET_CLINIC_KEY);
+    await storage.remove(WORKSPACE_KEY);
     queryClient.clear();
-    set({ token: null, user: null, status: "signedOut", vetClinicId: null });
+    set({ token: null, user: null, status: "signedOut", vetClinicId: null, workspace: null, choosingWorkspace: false });
   },
 
   setVetClinic: (clinicId) => {
@@ -118,7 +167,12 @@ configureApi({
   getToken: () => useSession.getState().token,
   onUnauthorized: () => void verifyThenSignOut(),
   getExtraHeaders: (): Record<string, string> => {
-    const { user, vetClinicId } = useSession.getState();
-    return user?.role === "vet" && vetClinicId ? { "x-vet-clinic": vetClinicId } : {};
+    const { user, vetClinicId, workspace } = useSession.getState();
+    const h: Record<string, string> = {};
+    if (user?.role === "vet" && vetClinicId) h["x-vet-clinic"] = vetClinicId;
+    // พื้นที่คลินิกที่เลือก — route clinic/*, แชท, นัด ใช้คลินิกนี้ (พนักงาน/หมอ/เจ้าของหลายคลินิก)
+    const clinicId = clinicIdOf(workspace);
+    if (clinicId) h["x-clinic-id"] = clinicId;
+    return h;
   },
 });

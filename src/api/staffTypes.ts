@@ -73,6 +73,10 @@ export interface ClinicOverview {
   };
   ops?: OpsData;
   solo_vet?: SoloVet | null;
+  /** บทบาทในคลินิกนี้ (เจ้าของ/หมอ/พนักงาน) — เซิร์ฟเวอร์รุ่นเก่าไม่ส่ง = เจ้าของ */
+  roles?: ("owner" | "vet" | "staff")[];
+  /** สิทธิ์รายข้อ (lib/clinic/permissions.ts ของเว็บ) — ไม่ส่ง = ทำได้ทุกอย่าง */
+  permissions?: Record<string, boolean>;
 }
 
 export interface OwnerHistory {

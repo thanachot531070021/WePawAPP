@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   UserRound,
+  ArrowLeftRight,
 } from "lucide-react-native";
 import { View } from "react-native";
 import { TopActions } from "@/components/TopActions";
@@ -20,6 +21,7 @@ import { useAppointments, useChatUnread, useFavorites, usePets } from "@/feature
 import { unregisterPush } from "@/lib/push";
 import { formatThaiPhone } from "@/shared/phone";
 import { usePrefs, type ThemePref } from "@/state/prefs";
+import { useHasManyWorkspaces } from "@/features/workspaces";
 import { useSession } from "@/state/session";
 import { useColors } from "@/theme";
 
@@ -28,6 +30,8 @@ export default function MeTab() {
   const c = useColors();
   const user = useSession((s) => s.user);
   const signOut = useSession((s) => s.signOut);
+  const askWorkspace = useSession((s) => s.askWorkspace);
+  const many = useHasManyWorkspaces();
   const theme = usePrefs((s) => s.theme);
   const setTheme = usePrefs((s) => s.setTheme);
   const { data: pets } = usePets();
@@ -91,6 +95,7 @@ export default function MeTab() {
 
       <SectionTitle>บัญชี</SectionTitle>
       <Card padded={false}>
+        {many && <ListRow icon={ArrowLeftRight} label="สลับพื้นที่ใช้งาน" value="หลังบ้านคลินิก" onPress={askWorkspace} />}
         <ListRow icon={UserRound} label="แก้ไขโปรไฟล์" onPress={() => router.push("/settings/profile")} />
         <ListRow icon={KeyRound} label="เปลี่ยนรหัสผ่าน" onPress={() => router.push("/settings/password")} />
         <ListRow icon={Bell} label="ตั้งค่าการแจ้งเตือน" onPress={() => router.push("/settings/notifications")} last />

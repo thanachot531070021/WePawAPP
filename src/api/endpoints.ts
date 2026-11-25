@@ -54,9 +54,20 @@ export const authApi = {
   refresh: () => api<AuthResult>("/api/mobile/auth/refresh", { method: "POST" }),
 };
 
+/** พื้นที่ใช้งานของบัญชี (lib/auth/workspaces.ts ของเว็บ) */
+export interface Workspace {
+  key: string;
+  kind: "personal" | "vet" | "clinic" | "admin";
+  title: string;
+  sub: string;
+  href: string;
+  clinicId?: string;
+  pending?: boolean;
+}
+
 // ── me ──
 export const meApi = {
-  get: () => api<{ user: User; profile: Profile | null }>("/api/mobile/me"),
+  get: () => api<{ user: User; profile: Profile | null; workspaces?: Workspace[] }>("/api/mobile/me"),
   update: (body: { full_name: string; phone?: string | null; province?: string | null; district?: string | null }) =>
     api<ActionOk<null>>("/api/mobile/me", { method: "PATCH", body }),
   /** เปิด/ปิดความยินยอม PDPA — ส่งเฉพาะค่าที่เปลี่ยน */

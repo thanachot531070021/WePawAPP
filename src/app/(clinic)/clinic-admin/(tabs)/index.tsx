@@ -4,7 +4,7 @@ import { Pressable, View } from "react-native";
 import { TopActions } from "@/components/TopActions";
 import { CLINIC_CASE_TONE } from "@/components/staff/caseTones";
 import { AppBar, Card, Notice, Screen, SectionTitle, Txt } from "@/components/ui";
-import { useClinicOverview } from "@/features/staffQueries";
+import { useClinicCan, useClinicOverview } from "@/features/staffQueries";
 import { radius, useColors } from "@/theme";
 
 function Stat({ icon: Icon, value, label, foot }: { icon: typeof Eye; value: string; label: string; foot?: string | null }) {
@@ -61,6 +61,7 @@ function Alert({ icon: Icon, text, count, onPress, tone }: { icon: typeof Inbox;
 export default function ClinicHome() {
   const c = useColors();
   const { data, refetch, isRefetching } = useClinicOverview();
+  const can = useClinicCan();
   if (!data?.stats || !data.ops) return null;
   const s = data.stats;
   const weekDelta = s.views_prev_7d > 0 ? Math.round(((s.views_7d - s.views_prev_7d) / s.views_prev_7d) * 100) : null;
@@ -77,18 +78,20 @@ export default function ClinicHome() {
 
       {(s.pending_requests > 0 || s.accepted_waiting > 0 || s.pending_reply > 0) && (
         <View style={{ gap: 8 }}>
-          {s.pending_requests > 0 && (
+          {s.pending_requests > 0 && can("appointments.manage") && (
             <Alert icon={Inbox} text="คำขอจองรอกดรับ" count={s.pending_requests} tone="#7c3aed" onPress={() => router.push("/clinic-admin/requests")} />
           )}
-          {s.accepted_waiting > 0 && (
+          {s.accepted_waiting > 0 && can("appointments.manage") && (
             <Alert icon={CalendarClock} text="รับแล้ว รอสัตว์มาส่ง" count={s.accepted_waiting} tone="#0d9488" onPress={() => router.push("/clinic-admin/requests")} />
           )}
-          {s.pending_reply > 0 && (
+          {s.pending_reply > 0 && can("reviews.reply") && (
             <Alert icon={MessageSquareReply} text="รีวิวรอตอบกลับ" count={s.pending_reply} tone="#d97706" onPress={() => router.push("/clinic-admin/reviews")} />
           )}
         </View>
       )}
 
+      {can("reports.sales") && (
+      <>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Stat icon={Eye} value={s.views_total.toLocaleString("th-TH")} label="ยอดเข้าชมทั้งหมด" />
         <Stat
@@ -102,6 +105,8 @@ export default function ClinicHome() {
         <Stat icon={Heart} value={s.favorite_count.toLocaleString("th-TH")} label="ผู้บันทึก Favorite" />
         <Stat icon={Star} value={rating} label={`คะแนนเฉลี่ย (${s.rating_count})`} foot={s.pending_reply ? `${s.pending_reply} รอตอบ` : null} />
       </View>
+      </>
+      )}
 
       <SectionTitle
         action={

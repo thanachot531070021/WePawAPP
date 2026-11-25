@@ -17,7 +17,7 @@ export default function SignIn() {
 
   async function submit() {
     if (!email.trim() || !password) {
-      setError("กรุณากรอกอีเมลและรหัสผ่าน");
+      setError("กรุณากรอกอีเมลหรือเบอร์โทร และรหัสผ่าน");
       return;
     }
     setBusy(true);
@@ -46,14 +46,14 @@ export default function SignIn() {
       </View>
       {error && <Notice tone="danger">{error}</Notice>}
       <Field
-        label="อีเมล"
+        label="อีเมลหรือเบอร์โทร"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        autoComplete="email"
-        textContentType="emailAddress"
-        placeholder="you@example.com"
+        autoComplete="username"
+        textContentType="username"
+        placeholder="you@example.com หรือ 08x-xxx-xxxx"
         testID="email"
       />
       <Field

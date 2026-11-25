@@ -66,3 +66,10 @@ export const useVetProfile = () =>
   useQuery({ queryKey: staffKeys.vetProfile, queryFn: async () => (await vetStaffApi.profile()).profile });
 export const useVetPetFile = (id: string) =>
   useQuery({ queryKey: staffKeys.vetPet(id), queryFn: () => vetStaffApi.petFile(id), enabled: !!id });
+
+/** สิทธิ์ของบัญชีนี้ในคลินิกที่เลือก — ใช้ซ่อนแท็บ/เมนู (เซิร์ฟเวอร์ตรวจซ้ำทุก route) · ยังโหลดไม่เสร็จ/เซิร์ฟเวอร์เก่า = ให้ผ่าน */
+export function useClinicCan(): (key: string) => boolean {
+  const { data } = useClinicOverview();
+  const perms = data?.permissions;
+  return (key: string) => !perms || perms[key] === true;
+}

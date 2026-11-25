@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { Bell, KeyRound, LogOut, Moon } from "lucide-react-native";
+import { ArrowLeftRight, Bell, KeyRound, LogOut, Moon } from "lucide-react-native";
 import { View } from "react-native";
 import { Card, Chip, confirmAsync, ListRow, SectionTitle, Txt } from "@/components/ui";
 import { unregisterPush } from "@/lib/push";
 import { usePrefs, type ThemePref } from "@/state/prefs";
+import { useHasManyWorkspaces } from "@/features/workspaces";
 import { useSession } from "@/state/session";
 import { useColors } from "@/theme";
 
@@ -17,12 +18,15 @@ const THEMES: { id: ThemePref; label: string }[] = [
 export function StaffSettings() {
   const c = useColors();
   const signOut = useSession((s) => s.signOut);
+  const askWorkspace = useSession((s) => s.askWorkspace);
+  const many = useHasManyWorkspaces();
   const theme = usePrefs((s) => s.theme);
   const setTheme = usePrefs((s) => s.setTheme);
   return (
     <>
       <SectionTitle>บัญชี</SectionTitle>
       <Card padded={false}>
+        {many && <ListRow icon={ArrowLeftRight} label="สลับพื้นที่ใช้งาน" value="น้องของฉัน · คลินิกอื่น" onPress={askWorkspace} />}
         <ListRow icon={Bell} label="การแจ้งเตือน" onPress={() => router.push("/notifications")} />
         <ListRow icon={Bell} label="ตั้งค่าการแจ้งเตือนบนเครื่อง" onPress={() => router.push("/settings/notifications")} />
         <ListRow icon={KeyRound} label="เปลี่ยนรหัสผ่าน" onPress={() => router.push("/settings/password")} last />

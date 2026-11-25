@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { Calendar, LayoutGrid, MessageCircle, Settings2 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChatUnread } from "@/features/queries";
-import { useClinicOverview } from "@/features/staffQueries";
+import { useClinicCan, useClinicOverview } from "@/features/staffQueries";
 import { font, useColors } from "@/theme";
 
 /** แถบล่างของคลินิก — ลำดับเดียวกับ MobileClinicAdminView ของเว็บ: หน้าหลัก · นัด · แชท · จัดการ */
@@ -11,6 +11,7 @@ export default function ClinicTabs() {
   const insets = useSafeAreaInsets();
   const { data } = useClinicOverview();
   const { data: chatUnread } = useChatUnread();
+  const can = useClinicCan();
   const requests = data?.stats?.pending_requests ?? 0;
   const pendingReviews = data?.stats?.pending_reply ?? 0;
   const badge = { backgroundColor: c.dangerSolid, fontFamily: font.bold, fontSize: 10 };
@@ -39,6 +40,8 @@ export default function ClinicTabs() {
       <Tabs.Screen
         name="appointments"
         options={{
+          // ไม่มีสิทธิ์จัดการนัด → ซ่อนแท็บ (href: null)
+          href: can("appointments.manage") ? undefined : null,
           title: "นัด",
           tabBarBadge: requests > 0 ? requests : undefined,
           tabBarBadgeStyle: badge,
@@ -48,6 +51,7 @@ export default function ClinicTabs() {
       <Tabs.Screen
         name="messages"
         options={{
+          href: can("chat.clinic") ? undefined : null,
           title: "แชท",
           tabBarBadge: chatUnread ? chatUnread : undefined,
           tabBarBadgeStyle: badge,
